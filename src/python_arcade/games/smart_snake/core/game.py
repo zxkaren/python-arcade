@@ -6,12 +6,16 @@ from python_arcade.games.smart_snake.config.game_settings import (
     SCREEN_WIDTH,
     TARGET_FPS,
 )
+from python_arcade.games.smart_snake.core.scene_manager import SceneManager
+from python_arcade.games.smart_snake.scenes.intro_scene import IntroScene
+from python_arcade.games.smart_snake.scenes.main_menu_scene import MainMenuScene
+from python_arcade.games.smart_snake.scenes.stage_scene import StageScene
 
 # Controla o ciclo principal de execução da Smart Snake.
 class SmartSnakeGame:
-    # Resumo: inicializa os recursos básicos necessários para executar o jogo.
-    def __init__(self) -> None:
 
+    # Inicializa os recursos básicos necessários para executar o jogo.
+    def __init__(self) -> None:
         pygame.init()
 
         self.screen = pygame.display.set_mode(
@@ -22,20 +26,43 @@ class SmartSnakeGame:
         self.clock = pygame.time.Clock()
         self.is_running = True
 
-    # Resumo: mantém o game loop ativo até o jogador encerrar a janela.
+        intro_scene = IntroScene(self.show_main_menu)
+        self.scene_manager = SceneManager(intro_scene)
+
+    # Mantém o game loop ativo até o jogador encerrar a janela.
     def run(self) -> None:
         try:
             while self.is_running:
                 self.handle_events()
-                self.screen.fill((0, 0, 0))
+
+                delta_time = self.clock.tick(TARGET_FPS) / 1000.0
+
+                self.scene_manager.update(delta_time)
+                self.scene_manager.render(self.screen)
 
                 pygame.display.flip()
-                self.clock.tick(TARGET_FPS)
         finally:
             pygame.quit()
 
-    # Resumo: processa os eventos gerados durante a execução do jogo.
+    # Processa os eventos globais da aplicação.
     def handle_events(self) -> None:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
+        frame_events = pygame.event.get()
+
+        for game_event in frame_events:
+            if game_event.type == pygame.QUIT:
                 self.is_running = False
+
+        self.scene_manager.handle_events(frame_events)
+
+    # Exibe o menu principal da Smart Snake.
+    def show_main_menu(self) -> None:
+        main_menu_scene = MainMenuScene(self.show_stage_one)
+        self.scene_manager.change_scene(main_menu_scene)
+
+    # Exibe a primeira fase da aventura.
+    def show_stage_one(self) -> None:
+        stage_one_scene = StageScene(
+            stage_number=1,
+            stage_name="RIVERBANK",
+        )
+        self.scene_manager.change_scene(stage_one_scene)

@@ -15,22 +15,23 @@ RIVERBANK_ASSETS_DIRECTORY = (
     / "environments"
     / "riverbank"
 )
-
-RIVERBANK_BACKGROUND_PATH = (
-    RIVERBANK_ASSETS_DIRECTORY
-    / "riverbank_background.png"
-)
-
-
 # Responsável pela representação visual do cenário Riverbank.
 class RiverbankEnvironmentRenderer:
 
-    # Resumo: carrega e dimensiona o background da Riverbank preservando sua proporção.
-    # Parâmetros: nenhum.
+    # Resumo: carrega e dimensiona o background configurado para a área ativa.
+    # Parâmetros: background_asset_name identifica o arquivo de background da área.
     # Retorno: nenhum.
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        background_asset_name: str,
+    ) -> None:
+        background_path = (
+            RIVERBANK_ASSETS_DIRECTORY
+            / background_asset_name
+        )
+
         original_background_surface = pygame.image.load(
-            RIVERBANK_BACKGROUND_PATH
+            background_path
         ).convert()
 
         self.background_surface = self.resize_background_to_screen(

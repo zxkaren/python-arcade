@@ -18,9 +18,14 @@ from python_arcade.games.smart_snake.controllers.smart_snake_animation_controlle
 from python_arcade.games.smart_snake.ui.riverbank_environment_renderer import (
     RiverbankEnvironmentRenderer,
 )
+from python_arcade.games.smart_snake.content.riverbank_areas import (
+    RIVERBANK_INITIAL_AREA_ID,
+    RIVERBANK_STAGE_AREAS,
+)
+from python_arcade.games.smart_snake.world.stage_area_manager import (
+    StageAreaManager,
+)
 
-SMART_SNAKE_INITIAL_POSITION_X = 65.0
-SMART_SNAKE_INITIAL_POSITION_Y = 490.0
 SMART_SNAKE_MOVEMENT_SPEED = 250.0
 SMART_SNAKE_ANIMATION_FRAME_DURATION = 0.2
 
@@ -29,16 +34,31 @@ SMART_SNAKE_ANIMATION_FRAME_DURATION = 0.2
 class RiverbankScene(BaseScene):
 
     # Inicializa a Smart Snake e os recursos visuais da fase.
+    # Resumo: inicializa a área ativa, a Smart Snake e os recursos da Riverbank.
+    # Parâmetros: nenhum.
+    # Retorno: nenhum.
     def __init__(self) -> None:
+        self.stage_area_manager = StageAreaManager(
+            stage_areas=RIVERBANK_STAGE_AREAS,
+            initial_area_id=RIVERBANK_INITIAL_AREA_ID,
+        )
+
+        active_area = self.stage_area_manager.get_active_area()
+
         self.smart_snake = SmartSnake(
-            position_x=SMART_SNAKE_INITIAL_POSITION_X,
-            position_y=SMART_SNAKE_INITIAL_POSITION_Y,
+            position_x=active_area.player_spawn_x,
+            position_y=active_area.player_spawn_y,
             movement_speed=SMART_SNAKE_MOVEMENT_SPEED,
         )
 
         self.smart_snake_renderer = SmartSnakeRenderer()
-        self.riverbank_environment_renderer = RiverbankEnvironmentRenderer()
+
+        self.riverbank_environment_renderer = RiverbankEnvironmentRenderer(
+            background_asset_name=active_area.background_asset_name,
+        )
+
         self.player_movement_controller = PlayerMovementController()
+
         self.smart_snake_animation_controller = SmartSnakeAnimationController(
             frame_count=self.smart_snake_renderer.get_frame_count(),
             frame_duration=SMART_SNAKE_ANIMATION_FRAME_DURATION,

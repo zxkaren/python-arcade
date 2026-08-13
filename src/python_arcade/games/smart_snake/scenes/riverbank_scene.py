@@ -15,11 +15,12 @@ from python_arcade.games.smart_snake.controllers.player_movement_controller impo
 from python_arcade.games.smart_snake.controllers.smart_snake_animation_controller import (
     SmartSnakeAnimationController,
 )
+from python_arcade.games.smart_snake.ui.riverbank_environment_renderer import (
+    RiverbankEnvironmentRenderer,
+)
 
-
-RIVERBANK_BACKGROUND_COLOR = (37, 76, 45)
-SMART_SNAKE_INITIAL_POSITION_X = SCREEN_WIDTH / 2
-SMART_SNAKE_INITIAL_POSITION_Y = SCREEN_HEIGHT / 2
+SMART_SNAKE_INITIAL_POSITION_X = 65.0
+SMART_SNAKE_INITIAL_POSITION_Y = 490.0
 SMART_SNAKE_MOVEMENT_SPEED = 250.0
 SMART_SNAKE_ANIMATION_FRAME_DURATION = 0.2
 
@@ -36,6 +37,7 @@ class RiverbankScene(BaseScene):
         )
 
         self.smart_snake_renderer = SmartSnakeRenderer()
+        self.riverbank_environment_renderer = RiverbankEnvironmentRenderer()
         self.player_movement_controller = PlayerMovementController()
         self.smart_snake_animation_controller = SmartSnakeAnimationController(
             frame_count=self.smart_snake_renderer.get_frame_count(),
@@ -115,13 +117,16 @@ class RiverbankScene(BaseScene):
             ),
         )
 
-    # Resumo: renderiza Riverbank e a Smart Snake.
+    # Resumo: renderiza o cenário Riverbank e a Smart Snake.
     # Parâmetros: screen representa a superfície principal do jogo.
+    # Retorno: nenhum.
     def render(
         self,
         screen: pygame.Surface,
     ) -> None:
-        screen.fill(RIVERBANK_BACKGROUND_COLOR)
+        self.riverbank_environment_renderer.render_background(
+            screen=screen,
+        )
 
         self.smart_snake_renderer.render(
             screen=screen,

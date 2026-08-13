@@ -15,7 +15,7 @@ SMART_SNAKE_SPRITE_PATHS = (
     SMART_SNAKE_SPRITES_DIRECTORY / "smart_snake_walk1.png",
 )
 
-SMART_SNAKE_RENDER_WIDTH = 180
+SMART_SNAKE_RENDER_WIDTH = 110
 
 # Responsável pela representação visual da Smart Snake durante o gameplay.
 class SmartSnakeRenderer:

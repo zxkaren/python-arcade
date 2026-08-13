@@ -7,6 +7,10 @@ from python_arcade.games.smart_snake.content.riverbank_areas import (
     RIVERBANK_STAGE_AREAS,
     RIVERBANK_WALKABLE_AREA,
 )
+from python_arcade.games.smart_snake.content.riverbank_areas import (
+    RIVERBANK_AREA_01,
+    RIVERBANK_SCENERY_OBJECTS,
+)
 
 
 # Resumo: valida a configuração da primeira e única área da Riverbank.
@@ -38,3 +42,44 @@ def test_riverbank_walkable_area_configuration() -> None:
     assert road_region.maximum_x == float(SCREEN_WIDTH)
     assert road_region.minimum_y == RIVERBANK_ROAD_MINIMUM_Y
     assert road_region.maximum_y == RIVERBANK_ROAD_MAXIMUM_Y
+
+# Resumo: valida se a primeira área da Riverbank possui sua coleção de objetos.
+# Parâmetros: nenhum.
+# Retorno: nenhum.
+def test_riverbank_area_01_stores_scenery_objects() -> None:
+    assert RIVERBANK_AREA_01.scenery_objects == RIVERBANK_SCENERY_OBJECTS
+    assert len(RIVERBANK_AREA_01.scenery_objects) == 9
+
+    bush_objects = tuple(
+        scenery_object
+        for scenery_object in RIVERBANK_AREA_01.scenery_objects
+        if scenery_object.asset_name == "bush_01.png"
+    )
+
+    rock_objects = tuple(
+        scenery_object
+        for scenery_object in RIVERBANK_AREA_01.scenery_objects
+        if scenery_object.asset_name == "rock_01.png"
+    )
+
+    tree_objects = tuple(
+        scenery_object
+        for scenery_object in RIVERBANK_AREA_01.scenery_objects
+        if scenery_object.asset_name == "tree_02.png"
+    )
+
+    assert len(bush_objects) == 6
+    assert len(rock_objects) == 1
+    assert len(tree_objects) == 2
+
+    assert all(
+        bush.render_width == 110
+        for bush in bush_objects
+    )
+
+    assert rock_objects[0].render_width == 170
+
+    assert all(
+        tree.render_width == 180
+        for tree in tree_objects
+    )

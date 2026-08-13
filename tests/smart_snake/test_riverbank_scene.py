@@ -269,3 +269,35 @@ def test_riverbank_scene_uses_active_stage_area(
         riverbank_scene.smart_snake.position_y
         == active_area.player_spawn_y
     )
+
+# Resumo: valida se a RiverbankScene renderiza os objetos da área ativa.
+# Parâmetros: riverbank_scene fornece a cena e monkeypatch intercepta o renderer.
+# Retorno: nenhum.
+def test_riverbank_scene_renders_active_area_scenery_objects(
+    riverbank_scene: RiverbankScene,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    rendered_scenery_objects = None
+
+    def capture_scenery_render(
+        screen: pygame.Surface,
+        scenery_objects,
+    ) -> None:
+        nonlocal rendered_scenery_objects
+        rendered_scenery_objects = scenery_objects
+
+    monkeypatch.setattr(
+        riverbank_scene.scenery_renderer,
+        "render",
+        capture_scenery_render,
+    )
+
+    screen = pygame.Surface(
+        (SCREEN_WIDTH, SCREEN_HEIGHT)
+    )
+
+    riverbank_scene.render(screen)
+
+    active_area = riverbank_scene.stage_area_manager.get_active_area()
+
+    assert rendered_scenery_objects == active_area.scenery_objects

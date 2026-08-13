@@ -10,6 +10,7 @@ from python_arcade.games.smart_snake.core.scene_manager import SceneManager
 from python_arcade.games.smart_snake.scenes.intro_scene import IntroScene
 from python_arcade.games.smart_snake.scenes.main_menu_scene import MainMenuScene
 from python_arcade.games.smart_snake.scenes.stage_scene import StageScene
+from python_arcade.games.smart_snake.scenes.riverbank_scene import RiverbankScene
 
 # Controla o ciclo principal de execução da Smart Snake.
 class SmartSnakeGame:
@@ -59,10 +60,18 @@ class SmartSnakeGame:
         main_menu_scene = MainMenuScene(self.show_stage_one)
         self.scene_manager.change_scene(main_menu_scene)
 
-    # Exibe a primeira fase da aventura.
+    # Exibe a apresentação da primeira fase da aventura.
     def show_stage_one(self) -> None:
         stage_one_scene = StageScene(
             stage_number=1,
             stage_name="RIVERBANK",
+            on_stage_finished=self.show_riverbank,
         )
+
         self.scene_manager.change_scene(stage_one_scene)
+
+    # Exibe a área jogável Riverbank.
+    def show_riverbank(self) -> None:
+        riverbank_scene = RiverbankScene()
+
+        self.scene_manager.change_scene(riverbank_scene)

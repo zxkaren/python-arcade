@@ -8,13 +8,16 @@ from python_arcade.games.smart_snake.config.game_settings import (
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
 )
+from python_arcade.games.smart_snake.content.riverbank_areas import (
+    RIVERBANK_AREA_01,
+    RIVERBANK_ROAD_MAXIMUM_Y,
+    RIVERBANK_ROAD_MINIMUM_Y,
+)
 from python_arcade.games.smart_snake.scenes.riverbank_scene import (
     SMART_SNAKE_ANIMATION_FRAME_DURATION,
     RiverbankScene,
 )
-from python_arcade.games.smart_snake.content.riverbank_areas import (
-    RIVERBANK_AREA_01,
-)
+
 
 # Resumo: prepara uma RiverbankScene utilizável nos testes sem abrir uma janela real.
 # Parâmetros: monkeypatch permite configurar o driver de vídeo temporariamente.
@@ -61,7 +64,7 @@ def test_riverbank_scene_updates_smart_snake_movement(
     assert riverbank_scene.smart_snake.position_y == initial_position_y
 
 
-# Resumo: valida se a Smart Snake permanece dentro do limite esquerdo.
+# Resumo: valida se a Smart Snake permanece dentro do limite esquerdo da área caminhável.
 # Parâmetros: riverbank_scene fornece a cena testada.
 # Retorno: nenhum.
 def test_riverbank_scene_constrains_left_boundary(
@@ -69,13 +72,15 @@ def test_riverbank_scene_constrains_left_boundary(
 ) -> None:
     sprite_width, _ = riverbank_scene.smart_snake_renderer.get_sprite_size()
 
-    riverbank_scene.smart_snake.position_x = -1000
-    riverbank_scene.constrain_smart_snake_to_screen()
+    riverbank_scene.smart_snake.position_x = -1000.0
+    riverbank_scene.constrain_smart_snake_to_walkable_area()
 
-    assert riverbank_scene.smart_snake.position_x == sprite_width / 2
+    expected_position_x = sprite_width / 2
+
+    assert riverbank_scene.smart_snake.position_x == expected_position_x
 
 
-# Resumo: valida se a Smart Snake permanece dentro do limite direito.
+# Resumo: valida se a Smart Snake permanece dentro do limite direito da área caminhável.
 # Parâmetros: riverbank_scene fornece a cena testada.
 # Retorno: nenhum.
 def test_riverbank_scene_constrains_right_boundary(
@@ -83,58 +88,70 @@ def test_riverbank_scene_constrains_right_boundary(
 ) -> None:
     sprite_width, _ = riverbank_scene.smart_snake_renderer.get_sprite_size()
 
-    riverbank_scene.smart_snake.position_x = SCREEN_WIDTH + 1000
-    riverbank_scene.constrain_smart_snake_to_screen()
+    riverbank_scene.smart_snake.position_x = SCREEN_WIDTH + 1000.0
+    riverbank_scene.constrain_smart_snake_to_walkable_area()
 
     expected_position_x = SCREEN_WIDTH - (sprite_width / 2)
 
     assert riverbank_scene.smart_snake.position_x == expected_position_x
 
 
-# Resumo: valida se a Smart Snake permanece dentro do limite superior.
+# Resumo: valida se a Smart Snake permanece abaixo da margem superior da estrada.
 # Parâmetros: riverbank_scene fornece a cena testada.
 # Retorno: nenhum.
-def test_riverbank_scene_constrains_top_boundary(
+def test_riverbank_scene_constrains_road_top_boundary(
     riverbank_scene: RiverbankScene,
 ) -> None:
     _, sprite_height = riverbank_scene.smart_snake_renderer.get_sprite_size()
 
-    riverbank_scene.smart_snake.position_y = -1000
-    riverbank_scene.constrain_smart_snake_to_screen()
+    riverbank_scene.smart_snake.position_y = 0.0
+    riverbank_scene.constrain_smart_snake_to_walkable_area()
 
-    assert riverbank_scene.smart_snake.position_y == sprite_height / 2
-
-
-# Resumo: valida se a Smart Snake permanece dentro do limite inferior.
-# Parâmetros: riverbank_scene fornece a cena testada.
-# Retorno: nenhum.
-def test_riverbank_scene_constrains_bottom_boundary(
-    riverbank_scene: RiverbankScene,
-) -> None:
-    _, sprite_height = riverbank_scene.smart_snake_renderer.get_sprite_size()
-
-    riverbank_scene.smart_snake.position_y = SCREEN_HEIGHT + 1000
-    riverbank_scene.constrain_smart_snake_to_screen()
-
-    expected_position_y = SCREEN_HEIGHT - (sprite_height / 2)
+    expected_position_y = (
+        RIVERBANK_ROAD_MINIMUM_Y
+        + (sprite_height / 2)
+    )
 
     assert riverbank_scene.smart_snake.position_y == expected_position_y
 
-# Resumo: valida se o update aplica o limite da tela após movimentar a Smart Snake.
+
+# Resumo: valida se a Smart Snake permanece acima da margem inferior da estrada.
+# Parâmetros: riverbank_scene fornece a cena testada.
+# Retorno: nenhum.
+def test_riverbank_scene_constrains_road_bottom_boundary(
+    riverbank_scene: RiverbankScene,
+) -> None:
+    _, sprite_height = riverbank_scene.smart_snake_renderer.get_sprite_size()
+
+    riverbank_scene.smart_snake.position_y = SCREEN_HEIGHT
+    riverbank_scene.constrain_smart_snake_to_walkable_area()
+
+    expected_position_y = (
+        RIVERBANK_ROAD_MAXIMUM_Y
+        - (sprite_height / 2)
+    )
+
+    assert riverbank_scene.smart_snake.position_y == expected_position_y
+
+
+# Resumo: valida se o update aplica os limites caminháveis após o movimento.
 # Parâmetros: riverbank_scene fornece a cena e monkeypatch simula o teclado.
 # Retorno: nenhum.
 def test_riverbank_scene_constrains_movement_during_update(
     riverbank_scene: RiverbankScene,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    sprite_width, _ = riverbank_scene.smart_snake_renderer.get_sprite_size()
+    _, sprite_height = riverbank_scene.smart_snake_renderer.get_sprite_size()
 
-    maximum_position_x = SCREEN_WIDTH - (sprite_width / 2)
+    minimum_position_y = (
+        RIVERBANK_ROAD_MINIMUM_Y
+        + (sprite_height / 2)
+    )
 
-    riverbank_scene.smart_snake.position_x = maximum_position_x - 1
+    riverbank_scene.smart_snake.position_y = minimum_position_y + 1.0
 
     pressed_keys = defaultdict(bool)
-    pressed_keys[pygame.K_d] = True
+    pressed_keys[pygame.K_w] = True
 
     monkeypatch.setattr(
         pygame.key,
@@ -144,7 +161,8 @@ def test_riverbank_scene_constrains_movement_during_update(
 
     riverbank_scene.update(delta_time=0.5)
 
-    assert riverbank_scene.smart_snake.position_x == maximum_position_x
+    assert riverbank_scene.smart_snake.position_y == minimum_position_y
+
 
 # Resumo: valida se a animação avança enquanto a Smart Snake está em movimento.
 # Parâmetros: riverbank_scene fornece a cena e monkeypatch simula o teclado.
@@ -201,6 +219,7 @@ def test_riverbank_scene_resets_animation_when_stopped(
 
     assert riverbank_scene.current_animation_frame_index == 0
 
+
 # Resumo: valida se a RiverbankScene utiliza o renderer do ambiente durante a renderização.
 # Parâmetros: riverbank_scene fornece a cena e monkeypatch intercepta a renderização do fundo.
 # Retorno: nenhum.
@@ -229,6 +248,7 @@ def test_riverbank_scene_renders_environment(
     riverbank_scene.render(screen)
 
     assert environment_was_rendered is True
+
 
 # Resumo: valida se a RiverbankScene utiliza a configuração da área ativa.
 # Parâmetros: riverbank_scene fornece a cena inicializada.

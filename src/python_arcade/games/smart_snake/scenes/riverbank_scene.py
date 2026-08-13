@@ -1,9 +1,5 @@
 import pygame
 
-from python_arcade.games.smart_snake.config.game_settings import (
-    SCREEN_HEIGHT,
-    SCREEN_WIDTH,
-)
 from python_arcade.games.smart_snake.domain.smart_snake import SmartSnake
 from python_arcade.games.smart_snake.scenes.base_scene import BaseScene
 from python_arcade.games.smart_snake.ui.smart_snake_renderer import (
@@ -16,6 +12,7 @@ from python_arcade.games.smart_snake.controllers.smart_snake_animation_controlle
     SmartSnakeAnimationController,
 )
 from python_arcade.games.smart_snake.ui.riverbank_environment_renderer import (
+    RIVERBANK_ASSETS_DIRECTORY,
     RiverbankEnvironmentRenderer,
 )
 from python_arcade.games.smart_snake.content.riverbank_areas import (
@@ -27,6 +24,9 @@ from python_arcade.games.smart_snake.world.stage_area_manager import (
 )
 from python_arcade.games.smart_snake.world.walkable_area_constraint import (
     WalkableAreaConstraint,
+)
+from python_arcade.games.smart_snake.ui.scenery_renderer import (
+    SceneryRenderer,
 )
 
 SMART_SNAKE_MOVEMENT_SPEED = 250.0
@@ -58,6 +58,10 @@ class RiverbankScene(BaseScene):
 
         self.riverbank_environment_renderer = RiverbankEnvironmentRenderer(
             background_asset_name=active_area.background_asset_name,
+        )
+
+        self.scenery_renderer = SceneryRenderer(
+            assets_directory=RIVERBANK_ASSETS_DIRECTORY,
         )
 
         self.player_movement_controller = PlayerMovementController()
@@ -131,7 +135,7 @@ class RiverbankScene(BaseScene):
         self.smart_snake.position_x = constrained_position_x
         self.smart_snake.position_y = constrained_position_y
 
-    # Resumo: renderiza o cenário Riverbank e a Smart Snake.
+    # Resumo: renderiza o cenário Riverbank, seus objetos e a Smart Snake.
     # Parâmetros: screen representa a superfície principal do jogo.
     # Retorno: nenhum.
     def render(
@@ -140,6 +144,13 @@ class RiverbankScene(BaseScene):
     ) -> None:
         self.riverbank_environment_renderer.render_background(
             screen=screen,
+        )
+
+        active_area = self.stage_area_manager.get_active_area()
+
+        self.scenery_renderer.render(
+            screen=screen,
+            scenery_objects=active_area.scenery_objects,
         )
 
         self.smart_snake_renderer.render(

@@ -197,3 +197,32 @@ def test_riverbank_scene_resets_animation_when_stopped(
     riverbank_scene.update(delta_time=0.01)
 
     assert riverbank_scene.current_animation_frame_index == 0
+
+# Resumo: valida se a RiverbankScene utiliza o renderer do ambiente durante a renderização.
+# Parâmetros: riverbank_scene fornece a cena e monkeypatch intercepta a renderização do fundo.
+# Retorno: nenhum.
+def test_riverbank_scene_renders_environment(
+    riverbank_scene: RiverbankScene,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    environment_was_rendered = False
+
+    def capture_environment_render(
+        screen: pygame.Surface,
+    ) -> None:
+        nonlocal environment_was_rendered
+        environment_was_rendered = True
+
+    monkeypatch.setattr(
+        riverbank_scene.riverbank_environment_renderer,
+        "render_background",
+        capture_environment_render,
+    )
+
+    screen = pygame.Surface(
+        (SCREEN_WIDTH, SCREEN_HEIGHT)
+    )
+
+    riverbank_scene.render(screen)
+
+    assert environment_was_rendered is True

@@ -25,6 +25,9 @@ from python_arcade.games.smart_snake.content.riverbank_areas import (
 from python_arcade.games.smart_snake.world.stage_area_manager import (
     StageAreaManager,
 )
+from python_arcade.games.smart_snake.world.walkable_area_constraint import (
+    WalkableAreaConstraint,
+)
 
 SMART_SNAKE_MOVEMENT_SPEED = 250.0
 SMART_SNAKE_ANIMATION_FRAME_DURATION = 0.2
@@ -63,6 +66,7 @@ class RiverbankScene(BaseScene):
             frame_count=self.smart_snake_renderer.get_frame_count(),
             frame_duration=SMART_SNAKE_ANIMATION_FRAME_DURATION,
         )
+        self.walkable_area_constraint = WalkableAreaConstraint()
 
         self.current_animation_frame_index = 0
     # Processa os eventos recebidos durante a fase.
@@ -95,7 +99,7 @@ class RiverbankScene(BaseScene):
             delta_time=delta_time,
         )
 
-        self.constrain_smart_snake_to_screen()
+        self.constrain_smart_snake_to_walkable_area()
 
         self.current_animation_frame_index = (
             self.smart_snake_animation_controller.update(
@@ -104,38 +108,28 @@ class RiverbankScene(BaseScene):
             )
         )
 
-        self.constrain_smart_snake_to_screen()
+    # Resumo: mantém todo o sprite da Smart Snake dentro da área caminhável ativa.
+    # Parâmetros: nenhum.
+    # Retorno: nenhum.
+    def constrain_smart_snake_to_walkable_area(self) -> None:
+        active_area = self.stage_area_manager.get_active_area()
 
-    # Resumo: mantém todo o sprite da Smart Snake dentro da área visível do jogo.
-    def constrain_smart_snake_to_screen(self) -> None:
         sprite_width, sprite_height = (
             self.smart_snake_renderer.get_sprite_size()
         )
 
-        horizontal_margin = sprite_width / 2
-        vertical_margin = sprite_height / 2
-
-        minimum_position_x = horizontal_margin
-        maximum_position_x = SCREEN_WIDTH - horizontal_margin
-
-        minimum_position_y = vertical_margin
-        maximum_position_y = SCREEN_HEIGHT - vertical_margin
-
-        self.smart_snake.position_x = max(
-            minimum_position_x,
-            min(
-                self.smart_snake.position_x,
-                maximum_position_x,
-            ),
+        constrained_position_x, constrained_position_y = (
+            self.walkable_area_constraint.constrain_position(
+                position_x=self.smart_snake.position_x,
+                position_y=self.smart_snake.position_y,
+                sprite_width=float(sprite_width),
+                sprite_height=float(sprite_height),
+                walkable_area=active_area.walkable_area,
+            )
         )
 
-        self.smart_snake.position_y = max(
-            minimum_position_y,
-            min(
-                self.smart_snake.position_y,
-                maximum_position_y,
-            ),
-        )
+        self.smart_snake.position_x = constrained_position_x
+        self.smart_snake.position_y = constrained_position_y
 
     # Resumo: renderiza o cenário Riverbank e a Smart Snake.
     # Parâmetros: screen representa a superfície principal do jogo.

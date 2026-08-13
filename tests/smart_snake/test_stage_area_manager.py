@@ -4,7 +4,25 @@ from python_arcade.games.smart_snake.world.stage_area import StageArea
 from python_arcade.games.smart_snake.world.stage_area_manager import (
     StageAreaManager,
 )
+from python_arcade.games.smart_snake.world.walkable_area import (
+    WalkableArea,
+    WalkableRegion,
+)
 
+# Resumo: cria uma área caminhável genérica reutilizável nos testes.
+# Parâmetros: nenhum.
+# Retorno: WalkableArea utilizada pelas StageAreas de teste.
+def create_test_walkable_area() -> WalkableArea:
+    return WalkableArea(
+        regions=(
+            WalkableRegion(
+                minimum_x=0.0,
+                maximum_x=1280.0,
+                minimum_y=400.0,
+                maximum_y=650.0,
+            ),
+        ),
+    )
 
 # Resumo: cria uma área de Riverbank reutilizável nos testes do manager.
 # Parâmetros: nenhum.
@@ -15,6 +33,7 @@ def create_riverbank_area() -> StageArea:
         background_asset_name="riverbank_background.png",
         player_spawn_x=65.0,
         player_spawn_y=490.0,
+        walkable_area=create_test_walkable_area(),
     )
 
 
@@ -43,6 +62,7 @@ def test_stage_area_manager_changes_active_area() -> None:
         background_asset_name="forest_01.png",
         player_spawn_x=60.0,
         player_spawn_y=450.0,
+        walkable_area=create_test_walkable_area(),
     )
 
     second_area = StageArea(
@@ -50,6 +70,7 @@ def test_stage_area_manager_changes_active_area() -> None:
         background_asset_name="forest_02.png",
         player_spawn_x=70.0,
         player_spawn_y=460.0,
+        walkable_area=create_test_walkable_area(),
     )
 
     stage_area_manager = StageAreaManager(

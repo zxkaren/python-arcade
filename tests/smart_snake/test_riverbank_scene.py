@@ -12,6 +12,9 @@ from python_arcade.games.smart_snake.scenes.riverbank_scene import (
     SMART_SNAKE_ANIMATION_FRAME_DURATION,
     RiverbankScene,
 )
+from python_arcade.games.smart_snake.content.riverbank_areas import (
+    RIVERBANK_AREA_01,
+)
 
 # Resumo: prepara uma RiverbankScene utilizável nos testes sem abrir uma janela real.
 # Parâmetros: monkeypatch permite configurar o driver de vídeo temporariamente.
@@ -226,3 +229,23 @@ def test_riverbank_scene_renders_environment(
     riverbank_scene.render(screen)
 
     assert environment_was_rendered is True
+
+# Resumo: valida se a RiverbankScene utiliza a configuração da área ativa.
+# Parâmetros: riverbank_scene fornece a cena inicializada.
+# Retorno: nenhum.
+def test_riverbank_scene_uses_active_stage_area(
+    riverbank_scene: RiverbankScene,
+) -> None:
+    active_area = riverbank_scene.stage_area_manager.get_active_area()
+
+    assert active_area == RIVERBANK_AREA_01
+
+    assert (
+        riverbank_scene.smart_snake.position_x
+        == active_area.player_spawn_x
+    )
+
+    assert (
+        riverbank_scene.smart_snake.position_y
+        == active_area.player_spawn_y
+    )

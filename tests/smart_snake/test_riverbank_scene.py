@@ -8,8 +8,10 @@ from python_arcade.games.smart_snake.config.game_settings import (
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
 )
-from python_arcade.games.smart_snake.scenes.riverbank_scene import RiverbankScene
-
+from python_arcade.games.smart_snake.scenes.riverbank_scene import (
+    SMART_SNAKE_ANIMATION_FRAME_DURATION,
+    RiverbankScene,
+)
 
 # Resumo: prepara uma RiverbankScene utilizável nos testes sem abrir uma janela real.
 # Parâmetros: monkeypatch permite configurar o driver de vídeo temporariamente.
@@ -140,3 +142,58 @@ def test_riverbank_scene_constrains_movement_during_update(
     riverbank_scene.update(delta_time=0.5)
 
     assert riverbank_scene.smart_snake.position_x == maximum_position_x
+
+# Resumo: valida se a animação avança enquanto a Smart Snake está em movimento.
+# Parâmetros: riverbank_scene fornece a cena e monkeypatch simula o teclado.
+# Retorno: nenhum.
+def test_riverbank_scene_advances_animation_while_moving(
+    riverbank_scene: RiverbankScene,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pressed_keys = defaultdict(bool)
+    pressed_keys[pygame.K_d] = True
+
+    monkeypatch.setattr(
+        pygame.key,
+        "get_pressed",
+        lambda: pressed_keys,
+    )
+
+    riverbank_scene.update(
+        delta_time=SMART_SNAKE_ANIMATION_FRAME_DURATION,
+    )
+
+    assert riverbank_scene.current_animation_frame_index == 1
+
+
+# Resumo: valida se a animação retorna ao primeiro frame quando o movimento termina.
+# Parâmetros: riverbank_scene fornece a cena e monkeypatch simula o teclado.
+# Retorno: nenhum.
+def test_riverbank_scene_resets_animation_when_stopped(
+    riverbank_scene: RiverbankScene,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    moving_keys = defaultdict(bool)
+    moving_keys[pygame.K_d] = True
+
+    monkeypatch.setattr(
+        pygame.key,
+        "get_pressed",
+        lambda: moving_keys,
+    )
+
+    riverbank_scene.update(
+        delta_time=SMART_SNAKE_ANIMATION_FRAME_DURATION,
+    )
+
+    stopped_keys = defaultdict(bool)
+
+    monkeypatch.setattr(
+        pygame.key,
+        "get_pressed",
+        lambda: stopped_keys,
+    )
+
+    riverbank_scene.update(delta_time=0.01)
+
+    assert riverbank_scene.current_animation_frame_index == 0

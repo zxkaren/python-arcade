@@ -12,12 +12,16 @@ from python_arcade.games.smart_snake.ui.smart_snake_renderer import (
 from python_arcade.games.smart_snake.controllers.player_movement_controller import (
     PlayerMovementController,
 )
+from python_arcade.games.smart_snake.controllers.smart_snake_animation_controller import (
+    SmartSnakeAnimationController,
+)
 
 
 RIVERBANK_BACKGROUND_COLOR = (37, 76, 45)
 SMART_SNAKE_INITIAL_POSITION_X = SCREEN_WIDTH / 2
 SMART_SNAKE_INITIAL_POSITION_Y = SCREEN_HEIGHT / 2
 SMART_SNAKE_MOVEMENT_SPEED = 250.0
+SMART_SNAKE_ANIMATION_FRAME_DURATION = 0.2
 
 
 # Representa a primeira área jogável da aventura.
@@ -33,7 +37,12 @@ class RiverbankScene(BaseScene):
 
         self.smart_snake_renderer = SmartSnakeRenderer()
         self.player_movement_controller = PlayerMovementController()
+        self.smart_snake_animation_controller = SmartSnakeAnimationController(
+            frame_count=self.smart_snake_renderer.get_frame_count(),
+            frame_duration=SMART_SNAKE_ANIMATION_FRAME_DURATION,
+        )
 
+        self.current_animation_frame_index = 0
     # Processa os eventos recebidos durante a fase.
     def handle_events(
         self,
@@ -41,7 +50,7 @@ class RiverbankScene(BaseScene):
     ) -> None:
         return
 
-    # Resumo: atualiza a posição da Smart Snake conforme os comandos do jogador.
+    # Resumo: atualiza a movimentação e a animação da Smart Snake.
     # Parâmetros: delta_time representa o tempo transcorrido desde o último frame.
     # Retorno: nenhum.
     def update(
@@ -56,10 +65,21 @@ class RiverbankScene(BaseScene):
             )
         )
 
+        is_moving = direction_x != 0.0 or direction_y != 0.0
+
         self.smart_snake.move(
             direction_x=direction_x,
             direction_y=direction_y,
             delta_time=delta_time,
+        )
+
+        self.constrain_smart_snake_to_screen()
+
+        self.current_animation_frame_index = (
+            self.smart_snake_animation_controller.update(
+                delta_time=delta_time,
+                is_moving=is_moving,
+            )
         )
 
         self.constrain_smart_snake_to_screen()
@@ -107,4 +127,5 @@ class RiverbankScene(BaseScene):
             screen=screen,
             position_x=self.smart_snake.position_x,
             position_y=self.smart_snake.position_y,
+            frame_index=self.current_animation_frame_index,
         )

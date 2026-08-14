@@ -57,6 +57,7 @@ from python_arcade.games.smart_snake.content.riverbank_areas import (
 from python_arcade.games.smart_snake.services.mouse_consumption_service import (
     MouseConsumptionService,
 )
+from python_arcade.games.smart_snake.domain.player_state import PlayerState
 
 SMART_SNAKE_MOVEMENT_SPEED = 250.0
 SMART_SNAKE_ANIMATION_FRAME_DURATION = 0.2
@@ -113,6 +114,7 @@ class RiverbankScene(BaseScene):
             frame_count=self.smart_snake_renderer.get_frame_count(),
             frame_duration=SMART_SNAKE_ANIMATION_FRAME_DURATION,
         )
+        self.player_state = PlayerState()
         self.mouse_consumption_service = MouseConsumptionService()
 
         self.walkable_area_constraint = WalkableAreaConstraint()
@@ -167,10 +169,13 @@ class RiverbankScene(BaseScene):
         self.update_mice_routes(
             delta_time=delta_time,
         )
-        self.mouse_consumption_service.consume_colliding_mouse(
-        smart_snake=self.smart_snake,
-        mice=self.mice,
+        consumed_mouse = self.mouse_consumption_service.consume_colliding_mouse(
+            smart_snake=self.smart_snake,
+            mice=self.mice,
         )
+
+        if consumed_mouse is not None:
+            self.player_state.process_consumed_mouse()
 
     # Resumo: mantém todo o sprite da Smart Snake dentro da área caminhável ativa.
     def constrain_smart_snake_to_walkable_area(self) -> None:

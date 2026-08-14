@@ -34,10 +34,36 @@ from python_arcade.games.smart_snake.world.stage_area_manager import (
 from python_arcade.games.smart_snake.world.walkable_area_constraint import (
     WalkableAreaConstraint,
 )
+from python_arcade.games.smart_snake.domain.mouse import Mouse
+from python_arcade.games.smart_snake.ui.mouse_renderer import (
+    MouseRenderer,
+)
+from python_arcade.games.smart_snake.controllers.mouse_movement_controller import (
+    MouseMovementController,
+)
+from python_arcade.games.smart_snake.controllers.mouse_route_controller import (
+    MouseRouteController,
+)
+from python_arcade.games.smart_snake.services.mouse_spawner import (
+    MouseSpawner,
+)
+from python_arcade.games.smart_snake.domain.mouse import Mouse
+from python_arcade.games.smart_snake.content.riverbank_areas import (
+    RIVERBANK_INITIAL_AREA_ID,
+    RIVERBANK_ROAD_MAXIMUM_Y,
+    RIVERBANK_ROAD_MINIMUM_Y,
+    RIVERBANK_STAGE_AREAS,
+)
 
 SMART_SNAKE_MOVEMENT_SPEED = 250.0
 SMART_SNAKE_ANIMATION_FRAME_DURATION = 0.2
 
+MOUSE_MOVEMENT_SPEED = 100.0
+
+RIVERBANK_ROAD_CENTER_Y = (
+    RIVERBANK_ROAD_MINIMUM_Y
+    + RIVERBANK_ROAD_MAXIMUM_Y
+) / 2
 
 # Representa a primeira área jogável da aventura.
 class RiverbankScene(BaseScene):
@@ -57,6 +83,11 @@ class RiverbankScene(BaseScene):
             movement_speed=SMART_SNAKE_MOVEMENT_SPEED,
         )
 
+        self.mice = MouseSpawner().spawn_from_bushes(
+            scenery_objects=active_area.scenery_objects,
+            road_center_y=RIVERBANK_ROAD_CENTER_Y,
+        )
+        self.mouse_renderer = MouseRenderer()
         self.smart_snake_renderer = SmartSnakeRenderer()
 
         self.riverbank_environment_renderer = RiverbankEnvironmentRenderer(
@@ -68,7 +99,13 @@ class RiverbankScene(BaseScene):
         )
 
         self.player_movement_controller = PlayerMovementController()
-
+        self.mouse_movement_controller = MouseMovementController()
+        self.mouse_route_controller = MouseRouteController(
+            movement_controller=self.mouse_movement_controller,
+        )
+        self.mouse_route_controller = MouseRouteController(
+        movement_controller=self.mouse_movement_controller,
+        )
         self.smart_snake_animation_controller = SmartSnakeAnimationController(
             frame_count=self.smart_snake_renderer.get_frame_count(),
             frame_duration=SMART_SNAKE_ANIMATION_FRAME_DURATION,
@@ -123,6 +160,9 @@ class RiverbankScene(BaseScene):
                 is_moving=is_moving,
             )
         )
+        self.update_mice_routes(
+            delta_time=delta_time,
+        )
 
     # Resumo: mantém todo o sprite da Smart Snake dentro da área caminhável ativa.
     def constrain_smart_snake_to_walkable_area(self) -> None:
@@ -166,6 +206,26 @@ class RiverbankScene(BaseScene):
 
         self.smart_snake.position_x = constrained_position_x
         self.smart_snake.position_y = constrained_position_y
+    
+    # Resumo: atualiza as trajetórias verticais de todos os ratos ativos na Riverbank.
+    # Parâmetros: delta_time representa o tempo decorrido desde a última atualização.
+    # Retorno: nenhum.
+    def update_mice_routes(
+        self,
+        delta_time: float,
+    ) -> None:
+        for mouse in self.mice:
+            if mouse.home_position_y < RIVERBANK_ROAD_CENTER_Y:
+                away_target_y = RIVERBANK_ROAD_MAXIMUM_Y
+            else:
+                away_target_y = RIVERBANK_ROAD_MINIMUM_Y
+
+            self.mouse_route_controller.update(
+                mouse=mouse,
+                away_target_y=away_target_y,
+                movement_speed=MOUSE_MOVEMENT_SPEED,
+                delta_time=delta_time,
+            )
 
     # Resumo: renderiza o cenário Riverbank, seus objetos e a Smart Snake.
     def render(
@@ -182,6 +242,14 @@ class RiverbankScene(BaseScene):
             screen=screen,
             scenery_objects=active_area.scenery_objects,
         )
+
+        for mouse in self.mice:
+            self.mouse_renderer.render(
+                screen=screen,
+                position_x=mouse.position_x,
+                position_y=mouse.position_y,
+                direction=mouse.direction,
+            )
 
         self.smart_snake_renderer.render(
             screen=screen,

@@ -13,13 +13,14 @@ from python_arcade.games.smart_snake.content.riverbank_areas import (
     RIVERBANK_ROAD_MAXIMUM_Y,
     RIVERBANK_ROAD_MINIMUM_Y,
 )
+from python_arcade.games.smart_snake.content.smart_snake_collision import (
+    SMART_SNAKE_COLLISION_BOX,
+)
 from python_arcade.games.smart_snake.scenes.riverbank_scene import (
     SMART_SNAKE_ANIMATION_FRAME_DURATION,
     RiverbankScene,
 )
-from python_arcade.games.smart_snake.content.smart_snake_collision import (
-    SMART_SNAKE_COLLISION_BOX,
-)
+from python_arcade.games.smart_snake.domain.mouse import MouseDirection
 
 
 # Resumo: prepara uma RiverbankScene utilizável nos testes sem abrir uma janela real.
@@ -273,6 +274,7 @@ def test_riverbank_scene_uses_active_stage_area(
         == active_area.player_spawn_y
     )
 
+
 # Resumo: valida se a RiverbankScene renderiza os objetos da área ativa.
 # Parâmetros: riverbank_scene fornece a cena e monkeypatch intercepta o renderer.
 # Retorno: nenhum.
@@ -304,6 +306,7 @@ def test_riverbank_scene_renders_active_area_scenery_objects(
     active_area = riverbank_scene.stage_area_manager.get_active_area()
 
     assert rendered_scenery_objects == active_area.scenery_objects
+
 
 # Resumo: valida se a RiverbankScene impede movimento contra obstáculos do cenário.
 # Parâmetros: riverbank_scene fornece a cena e monkeypatch simula o teclado.
@@ -360,3 +363,108 @@ def test_riverbank_scene_blocks_movement_against_scenery(
 
     assert riverbank_scene.smart_snake.position_x == previous_position_x
     assert riverbank_scene.smart_snake.position_y == previous_position_y
+
+
+# Resumo: valida se a RiverbankScene renderiza todos os ratos com seus estados atuais.
+# Parâmetros: riverbank_scene fornece a cena e monkeypatch intercepta o renderer.
+# Retorno: nenhum.
+def test_riverbank_scene_renders_mice(
+    riverbank_scene: RiverbankScene,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    rendered_mouse_states = []
+
+    def capture_mouse_render(
+        screen: pygame.Surface,
+        position_x: float,
+        position_y: float,
+        direction: MouseDirection,
+    ) -> None:
+        rendered_mouse_states.append(
+            (
+                position_x,
+                position_y,
+                direction,
+            )
+        )
+
+    monkeypatch.setattr(
+        riverbank_scene.mouse_renderer,
+        "render",
+        capture_mouse_render,
+    )
+
+    screen = pygame.Surface(
+        (SCREEN_WIDTH, SCREEN_HEIGHT)
+    )
+
+    riverbank_scene.render(screen)
+
+    expected_mouse_states = [
+        (
+            mouse.position_x,
+            mouse.position_y,
+            mouse.direction,
+        )
+        for mouse in riverbank_scene.mice
+    ]
+
+    assert rendered_mouse_states == expected_mouse_states
+
+# Resumo: valida se a RiverbankScene movimenta verticalmente um rato superior.
+# Parâmetros: riverbank_scene fornece a cena e monkeypatch simula ausência de teclas pressionadas.
+# Retorno: nenhum.
+def test_riverbank_scene_updates_mouse_position(
+    riverbank_scene: RiverbankScene,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    mouse = next(
+        mouse
+        for mouse in riverbank_scene.mice
+        if mouse.direction == MouseDirection.DOWN
+    )
+
+    initial_position_x = mouse.position_x
+    initial_position_y = mouse.position_y
+
+    pressed_keys = defaultdict(bool)
+
+    monkeypatch.setattr(
+        pygame.key,
+        "get_pressed",
+        lambda: pressed_keys,
+    )
+
+    riverbank_scene.update(delta_time=1.0)
+
+    assert mouse.position_x == initial_position_x
+    assert mouse.position_y == initial_position_y + 100.0
+    assert mouse.direction == MouseDirection.DOWN
+    
+# Resumo: valida se a RiverbankScene cria ratos utilizando os arbustos da área ativa.
+# Parâmetros: riverbank_scene fornece a cena inicializada.
+# Retorno: nenhum.
+def test_riverbank_scene_creates_mice_from_bushes(
+    riverbank_scene: RiverbankScene,
+) -> None:
+    active_area = riverbank_scene.stage_area_manager.get_active_area()
+
+    bush_positions = [
+        (
+            scenery_object.position_x,
+            scenery_object.position_y,
+        )
+        for scenery_object in active_area.scenery_objects
+        if scenery_object.asset_name == "bush_01.png"
+    ]
+
+    mouse_positions = [
+        (
+            mouse.position_x,
+            mouse.position_y,
+        )
+        for mouse in riverbank_scene.mice
+    ]
+
+    assert isinstance(riverbank_scene.mice, list)
+    assert mouse_positions == bush_positions

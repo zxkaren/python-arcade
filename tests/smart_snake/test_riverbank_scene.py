@@ -490,8 +490,41 @@ def test_riverbank_scene_consumes_colliding_mouse(
     )
 
     initial_mouse_count = len(riverbank_scene.mice)
+    initial_stored_mice = riverbank_scene.player_state.stored_mice
 
     riverbank_scene.update(delta_time=0.0)
 
     assert mouse not in riverbank_scene.mice
     assert len(riverbank_scene.mice) == initial_mouse_count - 1
+    assert (
+    riverbank_scene.player_state.stored_mice
+    == initial_stored_mice + 1
+)
+
+# Resumo: valida se um rato consumido recupera a vida da Smart Snake quando ela está ferida.
+# Parâmetros: riverbank_scene fornece a cena e monkeypatch simula ausência de movimento.
+# Retorno: nenhum.
+def test_riverbank_scene_restores_health_when_injured_snake_consumes_mouse(
+    riverbank_scene: RiverbankScene,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    mouse = riverbank_scene.mice[0]
+
+    riverbank_scene.smart_snake.position_x = mouse.position_x
+    riverbank_scene.smart_snake.position_y = mouse.position_y
+
+    riverbank_scene.player_state.current_health = 50
+
+    pressed_keys = defaultdict(bool)
+
+    monkeypatch.setattr(
+        pygame.key,
+        "get_pressed",
+        lambda: pressed_keys,
+    )
+
+    riverbank_scene.update(delta_time=0.0)
+
+    assert mouse not in riverbank_scene.mice
+    assert riverbank_scene.player_state.current_health == 75
+    assert riverbank_scene.player_state.stored_mice == 0

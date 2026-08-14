@@ -1,11 +1,29 @@
 import pygame
 
+from python_arcade.games.smart_snake.config.game_settings import (
+    SCREEN_HEIGHT,
+    SCREEN_WIDTH,
+)
 from python_arcade.games.smart_snake.content.riverbank_areas import (
     RIVERBANK_INITIAL_AREA_ID,
+    RIVERBANK_ROAD_MAXIMUM_Y,
+    RIVERBANK_ROAD_MINIMUM_Y,
     RIVERBANK_STAGE_AREAS,
 )
 from python_arcade.games.smart_snake.content.smart_snake_collision import (
     SMART_SNAKE_COLLISION_BOX,
+)
+from python_arcade.games.smart_snake.controllers.mouse_movement_controller import (
+    MouseMovementController,
+)
+from python_arcade.games.smart_snake.controllers.mouse_projectile_controller import (
+    MouseProjectileController,
+)
+from python_arcade.games.smart_snake.controllers.mouse_projectile_movement_controller import (
+    MouseProjectileMovementController,
+)
+from python_arcade.games.smart_snake.controllers.mouse_route_controller import (
+    MouseRouteController,
 )
 from python_arcade.games.smart_snake.controllers.player_movement_controller import (
     PlayerMovementController,
@@ -13,8 +31,27 @@ from python_arcade.games.smart_snake.controllers.player_movement_controller impo
 from python_arcade.games.smart_snake.controllers.smart_snake_animation_controller import (
     SmartSnakeAnimationController,
 )
+from python_arcade.games.smart_snake.domain.player_state import PlayerState
 from python_arcade.games.smart_snake.domain.smart_snake import SmartSnake
 from python_arcade.games.smart_snake.scenes.base_scene import BaseScene
+from python_arcade.games.smart_snake.services.mouse_consumption_service import (
+    MouseConsumptionService,
+)
+from python_arcade.games.smart_snake.services.mouse_projectile_launcher import (
+    MouseProjectileLauncher,
+)
+from python_arcade.games.smart_snake.services.mouse_spawner import (
+    MouseSpawner,
+)
+from python_arcade.games.smart_snake.ui.mouse_projectile_renderer import (
+    MouseProjectileRenderer,
+)
+from python_arcade.games.smart_snake.ui.mouse_renderer import (
+    MouseRenderer,
+)
+from python_arcade.games.smart_snake.ui.player_hud_renderer import (
+    PlayerHudRenderer,
+)
 from python_arcade.games.smart_snake.ui.riverbank_environment_renderer import (
     RIVERBANK_ASSETS_DIRECTORY,
     RiverbankEnvironmentRenderer,
@@ -34,38 +71,13 @@ from python_arcade.games.smart_snake.world.stage_area_manager import (
 from python_arcade.games.smart_snake.world.walkable_area_constraint import (
     WalkableAreaConstraint,
 )
-from python_arcade.games.smart_snake.domain.mouse import Mouse
-from python_arcade.games.smart_snake.ui.mouse_renderer import (
-    MouseRenderer,
-)
-from python_arcade.games.smart_snake.controllers.mouse_movement_controller import (
-    MouseMovementController,
-)
-from python_arcade.games.smart_snake.controllers.mouse_route_controller import (
-    MouseRouteController,
-)
-from python_arcade.games.smart_snake.services.mouse_spawner import (
-    MouseSpawner,
-)
-from python_arcade.games.smart_snake.domain.mouse import Mouse
-from python_arcade.games.smart_snake.content.riverbank_areas import (
-    RIVERBANK_INITIAL_AREA_ID,
-    RIVERBANK_ROAD_MAXIMUM_Y,
-    RIVERBANK_ROAD_MINIMUM_Y,
-    RIVERBANK_STAGE_AREAS,
-)
-from python_arcade.games.smart_snake.services.mouse_consumption_service import (
-    MouseConsumptionService,
-)
-from python_arcade.games.smart_snake.domain.player_state import PlayerState
-from python_arcade.games.smart_snake.ui.player_hud_renderer import (
-    PlayerHudRenderer,
-)
 
 SMART_SNAKE_MOVEMENT_SPEED = 250.0
 SMART_SNAKE_ANIMATION_FRAME_DURATION = 0.2
 
 MOUSE_MOVEMENT_SPEED = 100.0
+MOUSE_PROJECTILE_MOVEMENT_SPEED = 500.0
+MOUSE_PROJECTILE_CLEANUP_MARGIN = 100.0
 
 RIVERBANK_ROAD_CENTER_Y = (
     RIVERBANK_ROAD_MINIMUM_Y
@@ -95,6 +107,7 @@ class RiverbankScene(BaseScene):
             road_center_y=RIVERBANK_ROAD_CENTER_Y,
         )
         self.mouse_renderer = MouseRenderer()
+        self.mouse_projectile_renderer = MouseProjectileRenderer()
         self.smart_snake_renderer = SmartSnakeRenderer()
 
         self.riverbank_environment_renderer = RiverbankEnvironmentRenderer(
@@ -110,28 +123,41 @@ class RiverbankScene(BaseScene):
         self.mouse_route_controller = MouseRouteController(
             movement_controller=self.mouse_movement_controller,
         )
-        self.mouse_route_controller = MouseRouteController(
-        movement_controller=self.mouse_movement_controller,
-        )
         self.smart_snake_animation_controller = SmartSnakeAnimationController(
             frame_count=self.smart_snake_renderer.get_frame_count(),
             frame_duration=SMART_SNAKE_ANIMATION_FRAME_DURATION,
         )
         self.player_state = PlayerState()
-        self.player_hud_renderer = PlayerHudRenderer()
+
+        self.mouse_projectile_controller = MouseProjectileController(
+            projectile_launcher=MouseProjectileLauncher(),
+            movement_controller=MouseProjectileMovementController(),
+        )
         self.mouse_consumption_service = MouseConsumptionService()
 
+        self.player_hud_renderer = PlayerHudRenderer()
+        
         self.walkable_area_constraint = WalkableAreaConstraint()
         self.scenery_collision_constraint = SceneryCollisionConstraint()
 
         self.current_animation_frame_index = 0
 
     # Resumo: processa os eventos recebidos durante a fase.
+    # Parâmetros: events contém os eventos capturados pelo Pygame.
+    # Retorno: nenhum.
     def handle_events(
         self,
         events: list[pygame.event.Event],
     ) -> None:
-        return
+        for event in events:
+            if event.type != pygame.KEYDOWN:
+                continue
+
+            if event.key == pygame.K_SPACE:
+                self.mouse_projectile_controller.launch_projectile(
+                    smart_snake=self.smart_snake,
+                    player_state=self.player_state,
+                )
 
     # Resumo: atualiza movimentação, restrições físicas e animação da Smart Snake.
     def update(
@@ -172,6 +198,16 @@ class RiverbankScene(BaseScene):
         )
         self.update_mice_routes(
             delta_time=delta_time,
+        )
+        self.mouse_projectile_controller.update_projectiles(
+            movement_speed=MOUSE_PROJECTILE_MOVEMENT_SPEED,
+            delta_time=delta_time,
+        )
+        self.mouse_projectile_controller.remove_projectiles_outside_bounds(
+            minimum_x=-MOUSE_PROJECTILE_CLEANUP_MARGIN,
+            maximum_x=SCREEN_WIDTH + MOUSE_PROJECTILE_CLEANUP_MARGIN,
+            minimum_y=-MOUSE_PROJECTILE_CLEANUP_MARGIN,
+            maximum_y=SCREEN_HEIGHT + MOUSE_PROJECTILE_CLEANUP_MARGIN,
         )
         consumed_mouse = self.mouse_consumption_service.consume_colliding_mouse(
             smart_snake=self.smart_snake,
@@ -267,6 +303,16 @@ class RiverbankScene(BaseScene):
                 position_y=mouse.position_y,
                 direction=mouse.direction,
             )
+        for mouse_projectile in (
+            self.mouse_projectile_controller.active_projectiles
+        ):
+            self.mouse_projectile_renderer.render(
+                screen=screen,
+                position_x=mouse_projectile.position_x,
+                position_y=mouse_projectile.position_y,
+                direction_x=mouse_projectile.direction_x,
+                direction_y=mouse_projectile.direction_y,
+            )
 
         self.smart_snake_renderer.render(
             screen=screen,
@@ -274,16 +320,11 @@ class RiverbankScene(BaseScene):
             position_y=self.smart_snake.position_y,
             frame_index=self.current_animation_frame_index,
         )
-        self.smart_snake_renderer.render(
-        screen=screen,
-        position_x=self.smart_snake.position_x,
-        position_y=self.smart_snake.position_y,
-        frame_index=self.current_animation_frame_index,
-        )
+
         self.player_hud_renderer.render_health_bar(
-        screen=screen,
-        current_health=self.player_state.current_health,
-        maximum_health=self.player_state.maximum_health,
+            screen=screen,
+            current_health=self.player_state.current_health,
+            maximum_health=self.player_state.maximum_health,
         )
         self.player_hud_renderer.render_mouse_inventory(
             screen=screen,

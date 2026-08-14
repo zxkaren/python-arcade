@@ -528,3 +528,73 @@ def test_riverbank_scene_restores_health_when_injured_snake_consumes_mouse(
     assert mouse not in riverbank_scene.mice
     assert riverbank_scene.player_state.current_health == 75
     assert riverbank_scene.player_state.stored_mice == 0
+
+# Resumo: valida se a RiverbankScene renderiza a barra de vida com o estado atual.
+# Parâmetros: riverbank_scene fornece a cena e monkeypatch intercepta o renderer do HUD.
+# Retorno: nenhum.
+def test_riverbank_scene_renders_player_health_bar(
+    riverbank_scene: RiverbankScene,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    rendered_current_health = None
+    rendered_maximum_health = None
+
+    def capture_health_bar_render(
+        screen: pygame.Surface,
+        current_health: int,
+        maximum_health: int,
+    ) -> None:
+        nonlocal rendered_current_health
+        nonlocal rendered_maximum_health
+
+        rendered_current_health = current_health
+        rendered_maximum_health = maximum_health
+
+    monkeypatch.setattr(
+        riverbank_scene.player_hud_renderer,
+        "render_health_bar",
+        capture_health_bar_render,
+    )
+
+    screen = pygame.Surface(
+        (SCREEN_WIDTH, SCREEN_HEIGHT)
+    )
+
+    riverbank_scene.render(screen)
+
+    assert rendered_current_health == riverbank_scene.player_state.current_health
+    assert rendered_maximum_health == riverbank_scene.player_state.maximum_health
+
+# Resumo: valida se a RiverbankScene renderiza o estoque visual de ratos.
+# Parâmetros: riverbank_scene fornece a cena e monkeypatch intercepta o renderer do HUD.
+# Retorno: nenhum.
+def test_riverbank_scene_renders_mouse_inventory(
+    riverbank_scene: RiverbankScene,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    rendered_stored_mice = None
+
+    def capture_mouse_inventory_render(
+        screen: pygame.Surface,
+        stored_mice: int,
+    ) -> None:
+        nonlocal rendered_stored_mice
+
+        rendered_stored_mice = stored_mice
+
+    monkeypatch.setattr(
+        riverbank_scene.player_hud_renderer,
+        "render_mouse_inventory",
+        capture_mouse_inventory_render,
+    )
+
+    screen = pygame.Surface(
+        (SCREEN_WIDTH, SCREEN_HEIGHT)
+    )
+
+    riverbank_scene.render(screen)
+
+    assert (
+        rendered_stored_mice
+        == riverbank_scene.player_state.stored_mice
+    )

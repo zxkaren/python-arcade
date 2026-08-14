@@ -1,5 +1,8 @@
 from python_arcade.games.smart_snake.domain.player_state import PlayerState
-
+from python_arcade.games.smart_snake.domain.player_state import (
+    MAX_STORED_MICE,
+    PlayerState,
+)
 
 # Resumo: valida o estado inicial do jogador.
 # Parâmetros: nenhum.
@@ -94,8 +97,6 @@ def test_player_state_consumed_mouse_restores_health_when_injured() -> None:
 
 
 # Resumo: valida se um rato consumido vira estoque quando a vida está cheia.
-# Parâmetros: nenhum.
-# Retorno: nenhum.
 def test_player_state_consumed_mouse_is_stored_when_health_is_full() -> None:
     player_state = PlayerState()
 
@@ -103,3 +104,24 @@ def test_player_state_consumed_mouse_is_stored_when_health_is_full() -> None:
 
     assert player_state.current_health == 100
     assert player_state.stored_mice == 1
+
+# Resumo: valida se o estoque de ratos respeita a capacidade máxima.
+def test_player_state_does_not_store_more_than_maximum_mice() -> None:
+    player_state = PlayerState(
+        stored_mice=MAX_STORED_MICE,
+    )
+
+    player_state.store_mouse()
+
+    assert player_state.stored_mice == MAX_STORED_MICE
+
+# Resumo: valida se um rato consumido com vida cheia não ultrapassa o estoque máximo.
+def test_player_state_consumed_mouse_respects_maximum_storage() -> None:
+    player_state = PlayerState(
+        current_health=100,
+        stored_mice=MAX_STORED_MICE,
+    )
+
+    player_state.process_consumed_mouse()
+
+    assert player_state.stored_mice == MAX_STORED_MICE

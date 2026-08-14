@@ -58,6 +58,9 @@ from python_arcade.games.smart_snake.services.mouse_consumption_service import (
     MouseConsumptionService,
 )
 from python_arcade.games.smart_snake.domain.player_state import PlayerState
+from python_arcade.games.smart_snake.ui.player_hud_renderer import (
+    PlayerHudRenderer,
+)
 
 SMART_SNAKE_MOVEMENT_SPEED = 250.0
 SMART_SNAKE_ANIMATION_FRAME_DURATION = 0.2
@@ -115,6 +118,7 @@ class RiverbankScene(BaseScene):
             frame_duration=SMART_SNAKE_ANIMATION_FRAME_DURATION,
         )
         self.player_state = PlayerState()
+        self.player_hud_renderer = PlayerHudRenderer()
         self.mouse_consumption_service = MouseConsumptionService()
 
         self.walkable_area_constraint = WalkableAreaConstraint()
@@ -269,4 +273,19 @@ class RiverbankScene(BaseScene):
             position_x=self.smart_snake.position_x,
             position_y=self.smart_snake.position_y,
             frame_index=self.current_animation_frame_index,
+        )
+        self.smart_snake_renderer.render(
+        screen=screen,
+        position_x=self.smart_snake.position_x,
+        position_y=self.smart_snake.position_y,
+        frame_index=self.current_animation_frame_index,
+        )
+        self.player_hud_renderer.render_health_bar(
+        screen=screen,
+        current_health=self.player_state.current_health,
+        maximum_health=self.player_state.maximum_health,
+        )
+        self.player_hud_renderer.render_mouse_inventory(
+            screen=screen,
+            stored_mice=self.player_state.stored_mice,
         )

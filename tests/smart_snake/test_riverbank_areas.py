@@ -83,3 +83,68 @@ def test_riverbank_area_01_stores_scenery_objects() -> None:
         tree.render_width == 180
         for tree in tree_objects
     )
+
+# Resumo: valida quais objetos da Riverbank bloqueiam a movimentação da Smart Snake.
+# Parâmetros: nenhum.
+# Retorno: nenhum.
+def test_riverbank_area_01_configures_movement_blocking_objects() -> None:
+    bush_objects = tuple(
+        scenery_object
+        for scenery_object in RIVERBANK_AREA_01.scenery_objects
+        if scenery_object.asset_name == "bush_01.png"
+    )
+
+    rock_objects = tuple(
+        scenery_object
+        for scenery_object in RIVERBANK_AREA_01.scenery_objects
+        if scenery_object.asset_name == "rock_01.png"
+    )
+
+    tree_objects = tuple(
+        scenery_object
+        for scenery_object in RIVERBANK_AREA_01.scenery_objects
+        if scenery_object.asset_name == "tree_02.png"
+    )
+
+    assert all(
+        bush.blocks_movement is False
+        for bush in bush_objects
+    )
+
+    assert all(
+        rock.blocks_movement is True
+        for rock in rock_objects
+    )
+
+    assert all(
+        tree.blocks_movement is True
+        for tree in tree_objects
+    )
+
+# Resumo: valida se os obstáculos da Riverbank possuem áreas de colisão configuradas.
+# Parâmetros: nenhum.
+# Retorno: nenhum.
+def test_riverbank_area_01_configures_collision_boxes_for_obstacles() -> None:
+    blocking_objects = tuple(
+        scenery_object
+        for scenery_object in RIVERBANK_AREA_01.scenery_objects
+        if scenery_object.blocks_movement
+    )
+
+    non_blocking_objects = tuple(
+        scenery_object
+        for scenery_object in RIVERBANK_AREA_01.scenery_objects
+        if not scenery_object.blocks_movement
+    )
+
+    assert len(blocking_objects) == 3
+
+    assert all(
+        scenery_object.collision_box is not None
+        for scenery_object in blocking_objects
+    )
+
+    assert all(
+        scenery_object.collision_box is None
+        for scenery_object in non_blocking_objects
+    )

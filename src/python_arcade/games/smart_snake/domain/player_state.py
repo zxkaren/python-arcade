@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 MOUSE_HEALTH_RECOVERY = 25
+MAX_STORED_MICE = 5
 
 @dataclass
 class PlayerState:
@@ -8,8 +9,11 @@ class PlayerState:
     current_health: int = 100
     stored_mice: int = 0
 
-    # adiciona um rato ao estoque disponível para uso pelo jogador.
+    # Resumo: armazena um rato respeitando a capacidade máxima do jogador.
     def store_mouse(self) -> None:
+        if self.stored_mice >= MAX_STORED_MICE:
+            return
+
         self.stored_mice += 1
 
     # Reduz a vida atual do jogador sem permitir valores abaixo de zero.

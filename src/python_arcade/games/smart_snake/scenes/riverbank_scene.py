@@ -1,9 +1,11 @@
 import pygame
 
-from python_arcade.games.smart_snake.domain.smart_snake import SmartSnake
-from python_arcade.games.smart_snake.scenes.base_scene import BaseScene
-from python_arcade.games.smart_snake.ui.smart_snake_renderer import (
-    SmartSnakeRenderer,
+from python_arcade.games.smart_snake.content.riverbank_areas import (
+    RIVERBANK_INITIAL_AREA_ID,
+    RIVERBANK_STAGE_AREAS,
+)
+from python_arcade.games.smart_snake.content.smart_snake_collision import (
+    SMART_SNAKE_COLLISION_BOX,
 )
 from python_arcade.games.smart_snake.controllers.player_movement_controller import (
     PlayerMovementController,
@@ -11,22 +13,26 @@ from python_arcade.games.smart_snake.controllers.player_movement_controller impo
 from python_arcade.games.smart_snake.controllers.smart_snake_animation_controller import (
     SmartSnakeAnimationController,
 )
+from python_arcade.games.smart_snake.domain.smart_snake import SmartSnake
+from python_arcade.games.smart_snake.scenes.base_scene import BaseScene
 from python_arcade.games.smart_snake.ui.riverbank_environment_renderer import (
     RIVERBANK_ASSETS_DIRECTORY,
     RiverbankEnvironmentRenderer,
 )
-from python_arcade.games.smart_snake.content.riverbank_areas import (
-    RIVERBANK_INITIAL_AREA_ID,
-    RIVERBANK_STAGE_AREAS,
+from python_arcade.games.smart_snake.ui.scenery_renderer import (
+    SceneryRenderer,
+)
+from python_arcade.games.smart_snake.ui.smart_snake_renderer import (
+    SmartSnakeRenderer,
+)
+from python_arcade.games.smart_snake.world.scenery_collision_constraint import (
+    SceneryCollisionConstraint,
 )
 from python_arcade.games.smart_snake.world.stage_area_manager import (
     StageAreaManager,
 )
 from python_arcade.games.smart_snake.world.walkable_area_constraint import (
     WalkableAreaConstraint,
-)
-from python_arcade.games.smart_snake.ui.scenery_renderer import (
-    SceneryRenderer,
 )
 
 SMART_SNAKE_MOVEMENT_SPEED = 250.0
@@ -36,10 +42,7 @@ SMART_SNAKE_ANIMATION_FRAME_DURATION = 0.2
 # Representa a primeira área jogável da aventura.
 class RiverbankScene(BaseScene):
 
-    # Inicializa a Smart Snake e os recursos visuais da fase.
     # Resumo: inicializa a área ativa, a Smart Snake e os recursos da Riverbank.
-    # Parâmetros: nenhum.
-    # Retorno: nenhum.
     def __init__(self) -> None:
         self.stage_area_manager = StageAreaManager(
             stage_areas=RIVERBANK_STAGE_AREAS,
@@ -70,19 +73,20 @@ class RiverbankScene(BaseScene):
             frame_count=self.smart_snake_renderer.get_frame_count(),
             frame_duration=SMART_SNAKE_ANIMATION_FRAME_DURATION,
         )
+
         self.walkable_area_constraint = WalkableAreaConstraint()
+        self.scenery_collision_constraint = SceneryCollisionConstraint()
 
         self.current_animation_frame_index = 0
-    # Processa os eventos recebidos durante a fase.
+
+    # Resumo: processa os eventos recebidos durante a fase.
     def handle_events(
         self,
         events: list[pygame.event.Event],
     ) -> None:
         return
 
-    # Resumo: atualiza a movimentação e a animação da Smart Snake.
-    # Parâmetros: delta_time representa o tempo transcorrido desde o último frame.
-    # Retorno: nenhum.
+    # Resumo: atualiza movimentação, restrições físicas e animação da Smart Snake.
     def update(
         self,
         delta_time: float,
@@ -97,6 +101,9 @@ class RiverbankScene(BaseScene):
 
         is_moving = direction_x != 0.0 or direction_y != 0.0
 
+        previous_position_x = self.smart_snake.position_x
+        previous_position_y = self.smart_snake.position_y
+
         self.smart_snake.move(
             direction_x=direction_x,
             direction_y=direction_y,
@@ -104,6 +111,11 @@ class RiverbankScene(BaseScene):
         )
 
         self.constrain_smart_snake_to_walkable_area()
+
+        self.constrain_smart_snake_to_scenery(
+            previous_position_x=previous_position_x,
+            previous_position_y=previous_position_y,
+        )
 
         self.current_animation_frame_index = (
             self.smart_snake_animation_controller.update(
@@ -113,8 +125,6 @@ class RiverbankScene(BaseScene):
         )
 
     # Resumo: mantém todo o sprite da Smart Snake dentro da área caminhável ativa.
-    # Parâmetros: nenhum.
-    # Retorno: nenhum.
     def constrain_smart_snake_to_walkable_area(self) -> None:
         active_area = self.stage_area_manager.get_active_area()
 
@@ -135,9 +145,29 @@ class RiverbankScene(BaseScene):
         self.smart_snake.position_x = constrained_position_x
         self.smart_snake.position_y = constrained_position_y
 
+    # Resumo: impede que a Smart Snake ocupe o espaço de obstáculos do cenário.
+    def constrain_smart_snake_to_scenery(
+        self,
+        previous_position_x: float,
+        previous_position_y: float,
+    ) -> None:
+        active_area = self.stage_area_manager.get_active_area()
+
+        constrained_position_x, constrained_position_y = (
+            self.scenery_collision_constraint.constrain_position(
+                previous_position_x=previous_position_x,
+                previous_position_y=previous_position_y,
+                target_position_x=self.smart_snake.position_x,
+                target_position_y=self.smart_snake.position_y,
+                collision_box=SMART_SNAKE_COLLISION_BOX,
+                scenery_objects=active_area.scenery_objects,
+            )
+        )
+
+        self.smart_snake.position_x = constrained_position_x
+        self.smart_snake.position_y = constrained_position_y
+
     # Resumo: renderiza o cenário Riverbank, seus objetos e a Smart Snake.
-    # Parâmetros: screen representa a superfície principal do jogo.
-    # Retorno: nenhum.
     def render(
         self,
         screen: pygame.Surface,

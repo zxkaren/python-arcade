@@ -7,10 +7,23 @@ from python_arcade.games.smart_snake.world.walkable_area import (
     WalkableArea,
     WalkableRegion,
 )
+from python_arcade.games.smart_snake.world.collision_box import CollisionBox
 
 
 RIVERBANK_ROAD_MINIMUM_Y = 370.0
 RIVERBANK_ROAD_MAXIMUM_Y = 650.0
+
+ROCK_01_COLLISION_BOX = CollisionBox(
+    width=120.0,
+    height=70.0,
+    offset_y=20.0,
+)
+
+TREE_02_COLLISION_BOX = CollisionBox(
+    width=60.0,
+    height=30.0,
+    offset_y=70.0,
+)
 
 
 RIVERBANK_WALKABLE_AREA = WalkableArea(
@@ -73,6 +86,8 @@ RIVERBANK_SCENERY_OBJECTS = (
         position_x=1135.0,
         position_y=600.0,
         render_width=170,
+        blocks_movement=True,
+        collision_box=ROCK_01_COLLISION_BOX,
     ),
     SceneryObject(
         object_id="tree_02_instance_01",
@@ -80,6 +95,8 @@ RIVERBANK_SCENERY_OBJECTS = (
         position_x=1180.0,
         position_y=305.0,
         render_width=180,
+        blocks_movement=True,
+        collision_box=TREE_02_COLLISION_BOX,
     ),
     SceneryObject(
         object_id="tree_02_instance_02",
@@ -87,6 +104,8 @@ RIVERBANK_SCENERY_OBJECTS = (
         position_x=1230.0,
         position_y=510.0,
         render_width=180,
+        blocks_movement=True,
+        collision_box=TREE_02_COLLISION_BOX,
     ),
 )
 

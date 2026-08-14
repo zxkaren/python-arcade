@@ -17,6 +17,9 @@ from python_arcade.games.smart_snake.scenes.riverbank_scene import (
     SMART_SNAKE_ANIMATION_FRAME_DURATION,
     RiverbankScene,
 )
+from python_arcade.games.smart_snake.content.smart_snake_collision import (
+    SMART_SNAKE_COLLISION_BOX,
+)
 
 
 # Resumo: prepara uma RiverbankScene utilizável nos testes sem abrir uma janela real.
@@ -301,3 +304,59 @@ def test_riverbank_scene_renders_active_area_scenery_objects(
     active_area = riverbank_scene.stage_area_manager.get_active_area()
 
     assert rendered_scenery_objects == active_area.scenery_objects
+
+# Resumo: valida se a RiverbankScene impede movimento contra obstáculos do cenário.
+# Parâmetros: riverbank_scene fornece a cena e monkeypatch simula o teclado.
+# Retorno: nenhum.
+def test_riverbank_scene_blocks_movement_against_scenery(
+    riverbank_scene: RiverbankScene,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    active_area = riverbank_scene.stage_area_manager.get_active_area()
+
+    rock_object = next(
+        scenery_object
+        for scenery_object in active_area.scenery_objects
+        if scenery_object.asset_name == "rock_01.png"
+    )
+
+    assert rock_object.collision_box is not None
+
+    (
+        rock_minimum_x,
+        _,
+        rock_minimum_y,
+        _,
+    ) = rock_object.collision_box.calculate_bounds(
+        position_x=rock_object.position_x,
+        position_y=rock_object.position_y,
+    )
+
+    snake_horizontal_margin = SMART_SNAKE_COLLISION_BOX.width / 2
+
+    previous_position_x = (
+        rock_minimum_x
+        - SMART_SNAKE_COLLISION_BOX.offset_x
+        - snake_horizontal_margin
+    )
+    previous_position_y = (
+        rock_minimum_y
+        - SMART_SNAKE_COLLISION_BOX.offset_y
+    )
+
+    riverbank_scene.smart_snake.position_x = previous_position_x
+    riverbank_scene.smart_snake.position_y = previous_position_y
+
+    pressed_keys = defaultdict(bool)
+    pressed_keys[pygame.K_d] = True
+
+    monkeypatch.setattr(
+        pygame.key,
+        "get_pressed",
+        lambda: pressed_keys,
+    )
+
+    riverbank_scene.update(delta_time=0.04)
+
+    assert riverbank_scene.smart_snake.position_x == previous_position_x
+    assert riverbank_scene.smart_snake.position_y == previous_position_y

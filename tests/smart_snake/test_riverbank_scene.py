@@ -16,11 +16,16 @@ from python_arcade.games.smart_snake.content.riverbank_areas import (
 from python_arcade.games.smart_snake.content.smart_snake_collision import (
     SMART_SNAKE_COLLISION_BOX,
 )
+from python_arcade.games.smart_snake.domain.mouse import MouseDirection
+from python_arcade.games.smart_snake.domain.mouse_projectile import (
+    MouseProjectile,
+)
 from python_arcade.games.smart_snake.scenes.riverbank_scene import (
+    MOUSE_PROJECTILE_CLEANUP_MARGIN,
+    MOUSE_PROJECTILE_MOVEMENT_SPEED,
     SMART_SNAKE_ANIMATION_FRAME_DURATION,
     RiverbankScene,
 )
-from python_arcade.games.smart_snake.domain.mouse import MouseDirection
 
 
 # Resumo: prepara uma RiverbankScene utilizável nos testes sem abrir uma janela real.
@@ -411,6 +416,7 @@ def test_riverbank_scene_renders_mice(
 
     assert rendered_mouse_states == expected_mouse_states
 
+
 # Resumo: valida se a RiverbankScene movimenta verticalmente um rato superior.
 # Parâmetros: riverbank_scene fornece a cena e monkeypatch simula ausência de teclas pressionadas.
 # Retorno: nenhum.
@@ -440,7 +446,8 @@ def test_riverbank_scene_updates_mouse_position(
     assert mouse.position_x == initial_position_x
     assert mouse.position_y == initial_position_y + 100.0
     assert mouse.direction == MouseDirection.DOWN
-    
+
+
 # Resumo: valida se a RiverbankScene cria ratos utilizando os arbustos da área ativa.
 # Parâmetros: riverbank_scene fornece a cena inicializada.
 # Retorno: nenhum.
@@ -468,6 +475,7 @@ def test_riverbank_scene_creates_mice_from_bushes(
 
     assert isinstance(riverbank_scene.mice, list)
     assert mouse_positions == bush_positions
+
 
 # Resumo: valida se a RiverbankScene remove um rato consumido pela Smart Snake.
 # Parâmetros: riverbank_scene fornece a cena e monkeypatch simula ausência de movimento.
@@ -497,9 +505,10 @@ def test_riverbank_scene_consumes_colliding_mouse(
     assert mouse not in riverbank_scene.mice
     assert len(riverbank_scene.mice) == initial_mouse_count - 1
     assert (
-    riverbank_scene.player_state.stored_mice
-    == initial_stored_mice + 1
-)
+        riverbank_scene.player_state.stored_mice
+        == initial_stored_mice + 1
+    )
+
 
 # Resumo: valida se um rato consumido recupera a vida da Smart Snake quando ela está ferida.
 # Parâmetros: riverbank_scene fornece a cena e monkeypatch simula ausência de movimento.
@@ -528,6 +537,7 @@ def test_riverbank_scene_restores_health_when_injured_snake_consumes_mouse(
     assert mouse not in riverbank_scene.mice
     assert riverbank_scene.player_state.current_health == 75
     assert riverbank_scene.player_state.stored_mice == 0
+
 
 # Resumo: valida se a RiverbankScene renderiza a barra de vida com o estado atual.
 # Parâmetros: riverbank_scene fornece a cena e monkeypatch intercepta o renderer do HUD.
@@ -565,6 +575,7 @@ def test_riverbank_scene_renders_player_health_bar(
     assert rendered_current_health == riverbank_scene.player_state.current_health
     assert rendered_maximum_health == riverbank_scene.player_state.maximum_health
 
+
 # Resumo: valida se a RiverbankScene renderiza o estoque visual de ratos.
 # Parâmetros: riverbank_scene fornece a cena e monkeypatch intercepta o renderer do HUD.
 # Retorno: nenhum.
@@ -597,4 +608,244 @@ def test_riverbank_scene_renders_mouse_inventory(
     assert (
         rendered_stored_mice
         == riverbank_scene.player_state.stored_mice
+    )
+
+
+# Resumo: valida se a RiverbankScene inicializa o sistema de projéteis sem disparos ativos.
+# Parâmetros: riverbank_scene fornece a cena inicializada.
+# Retorno: nenhum.
+def test_riverbank_scene_initializes_mouse_projectile_controller(
+    riverbank_scene: RiverbankScene,
+) -> None:
+    assert (
+        riverbank_scene.mouse_projectile_controller.active_projectiles
+        == []
+    )
+
+
+# Resumo: valida se SPACE lança um rato armazenado na última direção da Smart Snake.
+# Parâmetros: riverbank_scene fornece a cena inicializada.
+# Retorno: nenhum.
+def test_riverbank_scene_launches_mouse_projectile_with_space(
+    riverbank_scene: RiverbankScene,
+) -> None:
+    riverbank_scene.player_state.stored_mice = 2
+
+    riverbank_scene.smart_snake.last_direction_x = 1.0
+    riverbank_scene.smart_snake.last_direction_y = 0.0
+
+    space_key_event = pygame.event.Event(
+        pygame.KEYDOWN,
+        key=pygame.K_SPACE,
+    )
+
+    riverbank_scene.handle_events(
+        events=[space_key_event],
+    )
+
+    active_projectiles = (
+        riverbank_scene.mouse_projectile_controller.active_projectiles
+    )
+
+    assert len(active_projectiles) == 1
+    assert riverbank_scene.player_state.stored_mice == 1
+
+    launched_projectile = active_projectiles[0]
+
+    assert (
+        launched_projectile.position_x
+        == riverbank_scene.smart_snake.position_x
+    )
+    assert (
+        launched_projectile.position_y
+        == riverbank_scene.smart_snake.position_y
+    )
+    assert launched_projectile.direction_x == 1.0
+    assert launched_projectile.direction_y == 0.0
+
+
+# Resumo: valida se outras teclas não lançam ratos armazenados.
+# Parâmetros: riverbank_scene fornece a cena inicializada.
+# Retorno: nenhum.
+def test_riverbank_scene_does_not_launch_projectile_with_other_key(
+    riverbank_scene: RiverbankScene,
+) -> None:
+    riverbank_scene.player_state.stored_mice = 2
+
+    riverbank_scene.smart_snake.last_direction_x = 1.0
+    riverbank_scene.smart_snake.last_direction_y = 0.0
+
+    other_key_event = pygame.event.Event(
+        pygame.KEYDOWN,
+        key=pygame.K_RETURN,
+    )
+
+    riverbank_scene.handle_events(
+        events=[other_key_event],
+    )
+
+    assert (
+        riverbank_scene.mouse_projectile_controller.active_projectiles
+        == []
+    )
+    assert riverbank_scene.player_state.stored_mice == 2
+
+
+# Resumo: valida se os projéteis ativos são movimentados durante o update da cena.
+# Parâmetros: riverbank_scene fornece a cena e monkeypatch simula ausência de movimento do jogador.
+# Retorno: nenhum.
+def test_riverbank_scene_updates_mouse_projectiles(
+    riverbank_scene: RiverbankScene,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    riverbank_scene.player_state.stored_mice = 1
+    riverbank_scene.smart_snake.last_direction_x = 1.0
+    riverbank_scene.smart_snake.last_direction_y = 0.0
+
+    space_key_event = pygame.event.Event(
+        pygame.KEYDOWN,
+        key=pygame.K_SPACE,
+    )
+
+    riverbank_scene.handle_events(
+        events=[space_key_event],
+    )
+
+    mouse_projectile = (
+        riverbank_scene.mouse_projectile_controller.active_projectiles[0]
+    )
+    initial_position_x = mouse_projectile.position_x
+    initial_position_y = mouse_projectile.position_y
+
+    pressed_keys = defaultdict(bool)
+
+    monkeypatch.setattr(
+        pygame.key,
+        "get_pressed",
+        lambda: pressed_keys,
+    )
+
+    delta_time = 0.5
+
+    riverbank_scene.update(
+        delta_time=delta_time,
+    )
+
+    expected_position_x = (
+        initial_position_x
+        + MOUSE_PROJECTILE_MOVEMENT_SPEED * delta_time
+    )
+
+    assert mouse_projectile.position_x == expected_position_x
+    assert mouse_projectile.position_y == initial_position_y
+
+
+# Resumo: valida se a RiverbankScene renderiza todos os projéteis ativos.
+# Parâmetros: riverbank_scene fornece a cena e monkeypatch intercepta o renderer.
+# Retorno: nenhum.
+def test_riverbank_scene_renders_active_mouse_projectiles(
+    riverbank_scene: RiverbankScene,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    mouse_projectile = MouseProjectile(
+        position_x=320.0,
+        position_y=480.0,
+        direction_x=1.0,
+        direction_y=0.0,
+    )
+
+    riverbank_scene.mouse_projectile_controller.active_projectiles.append(
+        mouse_projectile
+    )
+
+    rendered_projectiles: list[
+        tuple[float, float, float, float]
+    ] = []
+
+    def capture_projectile_render(
+        screen: pygame.Surface,
+        position_x: float,
+        position_y: float,
+        direction_x: float,
+        direction_y: float,
+    ) -> None:
+        rendered_projectiles.append(
+            (
+                position_x,
+                position_y,
+                direction_x,
+                direction_y,
+            )
+        )
+
+    monkeypatch.setattr(
+        riverbank_scene.mouse_projectile_renderer,
+        "render",
+        capture_projectile_render,
+    )
+
+    screen = pygame.Surface(
+        (SCREEN_WIDTH, SCREEN_HEIGHT)
+    )
+
+    riverbank_scene.render(
+        screen=screen,
+    )
+
+    assert rendered_projectiles == [
+        (
+            320.0,
+            480.0,
+            1.0,
+            0.0,
+        )
+    ]
+
+
+# Resumo: valida se projéteis são removidos somente após ultrapassarem a margem da tela.
+# Parâmetros: riverbank_scene fornece a cena e monkeypatch simula ausência de movimento do jogador.
+# Retorno: nenhum.
+def test_riverbank_scene_removes_projectile_after_leaving_screen(
+    riverbank_scene: RiverbankScene,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    projectile_still_leaving_screen = MouseProjectile(
+        position_x=SCREEN_WIDTH + 20.0,
+        position_y=500.0,
+        direction_x=0.0,
+        direction_y=0.0,
+    )
+    projectile_completely_outside_screen = MouseProjectile(
+        position_x=(
+            SCREEN_WIDTH
+            + MOUSE_PROJECTILE_CLEANUP_MARGIN
+            + 1.0
+        ),
+        position_y=500.0,
+        direction_x=0.0,
+        direction_y=0.0,
+    )
+
+    riverbank_scene.mouse_projectile_controller.active_projectiles.extend(
+        [
+            projectile_still_leaving_screen,
+            projectile_completely_outside_screen,
+        ]
+    )
+
+    pressed_keys = defaultdict(bool)
+
+    monkeypatch.setattr(
+        pygame.key,
+        "get_pressed",
+        lambda: pressed_keys,
+    )
+
+    riverbank_scene.update(
+        delta_time=0.0,
+    )
+
+    assert (
+        riverbank_scene.mouse_projectile_controller.active_projectiles
+        == [projectile_still_leaving_screen]
     )

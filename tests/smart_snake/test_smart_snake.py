@@ -53,3 +53,48 @@ def test_smart_snake_moves_down() -> None:
 
     assert smart_snake.position_x == 100
     assert smart_snake.position_y == 325
+
+# Resumo: valida se a Smart Snake memoriza sua última direção de movimento.
+# Parâmetros: nenhum.
+# Retorno: nenhum.
+def test_smart_snake_stores_last_movement_direction() -> None:
+    smart_snake = SmartSnake(
+        position_x=100,
+        position_y=200,
+        movement_speed=250,
+    )
+
+    smart_snake.move(
+        direction_x=-1.0,
+        direction_y=0.0,
+        delta_time=0.5,
+    )
+
+    assert smart_snake.last_direction_x == -1.0
+    assert smart_snake.last_direction_y == 0.0
+
+
+# Resumo: valida se parar não apaga a última direção válida da Smart Snake.
+# Parâmetros: nenhum.
+# Retorno: nenhum.
+def test_smart_snake_keeps_last_direction_when_stopped() -> None:
+    smart_snake = SmartSnake(
+        position_x=100,
+        position_y=200,
+        movement_speed=250,
+    )
+
+    smart_snake.move(
+        direction_x=0.0,
+        direction_y=-1.0,
+        delta_time=0.5,
+    )
+
+    smart_snake.move(
+        direction_x=0.0,
+        direction_y=0.0,
+        delta_time=0.5,
+    )
+
+    assert smart_snake.last_direction_x == 0.0
+    assert smart_snake.last_direction_y == -1.0

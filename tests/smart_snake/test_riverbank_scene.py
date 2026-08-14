@@ -468,3 +468,30 @@ def test_riverbank_scene_creates_mice_from_bushes(
 
     assert isinstance(riverbank_scene.mice, list)
     assert mouse_positions == bush_positions
+
+# Resumo: valida se a RiverbankScene remove um rato consumido pela Smart Snake.
+# Parâmetros: riverbank_scene fornece a cena e monkeypatch simula ausência de movimento.
+# Retorno: nenhum.
+def test_riverbank_scene_consumes_colliding_mouse(
+    riverbank_scene: RiverbankScene,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    mouse = riverbank_scene.mice[0]
+
+    riverbank_scene.smart_snake.position_x = mouse.position_x
+    riverbank_scene.smart_snake.position_y = mouse.position_y
+
+    pressed_keys = defaultdict(bool)
+
+    monkeypatch.setattr(
+        pygame.key,
+        "get_pressed",
+        lambda: pressed_keys,
+    )
+
+    initial_mouse_count = len(riverbank_scene.mice)
+
+    riverbank_scene.update(delta_time=0.0)
+
+    assert mouse not in riverbank_scene.mice
+    assert len(riverbank_scene.mice) == initial_mouse_count - 1

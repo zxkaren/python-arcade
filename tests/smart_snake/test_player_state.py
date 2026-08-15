@@ -125,3 +125,24 @@ def test_player_state_consumed_mouse_respects_maximum_storage() -> None:
     player_state.process_consumed_mouse()
 
     assert player_state.stored_mice == MAX_STORED_MICE
+
+# Resumo: valida se o jogador inicia a partida com pontuação zerada.
+def test_player_state_starts_with_zero_score() -> None:
+    player_state = PlayerState()
+
+    assert player_state.score == 0
+
+# Resumo: valida se pontos conquistados são acumulados na pontuação do jogador.
+# Parâmetros: nenhum.
+# Retorno: nenhum.
+def test_player_state_accumulates_score() -> None:
+    player_state = PlayerState()
+
+    player_state.add_score(
+        points=50,
+    )
+    player_state.add_score(
+        points=100,
+    )
+
+    assert player_state.score == 150

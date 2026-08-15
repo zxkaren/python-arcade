@@ -849,3 +849,66 @@ def test_riverbank_scene_removes_projectile_after_leaving_screen(
         riverbank_scene.mouse_projectile_controller.active_projectiles
         == [projectile_still_leaving_screen]
     )
+
+# Resumo: valida se consumir um rato adiciona sua pontuação ao jogador.
+# Parâmetros: riverbank_scene fornece a cena e monkeypatch simula ausência de movimento.
+# Retorno: nenhum.
+def test_riverbank_scene_adds_score_when_mouse_is_consumed(
+    riverbank_scene: RiverbankScene,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    mouse = riverbank_scene.mice[0]
+
+    riverbank_scene.smart_snake.position_x = mouse.position_x
+    riverbank_scene.smart_snake.position_y = mouse.position_y
+
+    pressed_keys = defaultdict(bool)
+
+    monkeypatch.setattr(
+        pygame.key,
+        "get_pressed",
+        lambda: pressed_keys,
+    )
+
+    initial_score = riverbank_scene.player_state.score
+
+    riverbank_scene.update(
+        delta_time=0.0,
+    )
+
+    assert mouse not in riverbank_scene.mice
+    assert riverbank_scene.player_state.score == initial_score + 50
+
+# Resumo: valida se a RiverbankScene renderiza a pontuação atual do jogador.
+# Parâmetros: riverbank_scene fornece a cena e monkeypatch intercepta o renderer do score.
+# Retorno: nenhum.
+def test_riverbank_scene_renders_player_score(
+    riverbank_scene: RiverbankScene,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    rendered_score = None
+
+    def capture_score_render(
+        screen: pygame.Surface,
+        score: int,
+    ) -> None:
+        nonlocal rendered_score
+        rendered_score = score
+
+    monkeypatch.setattr(
+        riverbank_scene.player_score_renderer,
+        "render",
+        capture_score_render,
+    )
+
+    riverbank_scene.player_state.score = 150
+
+    screen = pygame.Surface(
+        (SCREEN_WIDTH, SCREEN_HEIGHT)
+    )
+
+    riverbank_scene.render(
+        screen=screen,
+    )
+
+    assert rendered_score == 150

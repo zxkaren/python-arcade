@@ -6,6 +6,7 @@ from python_arcade.games.smart_snake.content.riverbank_areas import (
     RIVERBANK_ROAD_MINIMUM_Y,
     RIVERBANK_STAGE_AREAS,
     RIVERBANK_WALKABLE_AREA,
+    RIVERBANK_HUNTERS,
 )
 from python_arcade.games.smart_snake.content.riverbank_areas import (
     RIVERBANK_AREA_01,
@@ -148,3 +149,14 @@ def test_riverbank_area_01_configures_collision_boxes_for_obstacles() -> None:
         scenery_object.collision_box is None
         for scenery_object in non_blocking_objects
     )
+
+# Resumo: valida se a primeira área da Riverbank possui o Hunter configurado.
+def test_riverbank_area_01_stores_hunters() -> None:
+    assert RIVERBANK_AREA_01.hunters == RIVERBANK_HUNTERS
+    assert len(RIVERBANK_AREA_01.hunters) == 1
+
+    hunter = RIVERBANK_AREA_01.hunters[0]
+
+    assert hunter.hunter_id == "hunter_01"
+    assert hunter.position_x == 1050.0
+    assert hunter.position_y == 500.0

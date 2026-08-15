@@ -8,7 +8,7 @@ from python_arcade.games.smart_snake.world.walkable_area import (
     WalkableRegion,
 )
 from python_arcade.games.smart_snake.world.collision_box import CollisionBox
-
+from python_arcade.games.smart_snake.domain.hunter import Hunter
 
 RIVERBANK_ROAD_MINIMUM_Y = 370.0
 RIVERBANK_ROAD_MAXIMUM_Y = 650.0
@@ -34,6 +34,14 @@ RIVERBANK_WALKABLE_AREA = WalkableArea(
             minimum_y=RIVERBANK_ROAD_MINIMUM_Y,
             maximum_y=RIVERBANK_ROAD_MAXIMUM_Y,
         ),
+    ),
+)
+
+RIVERBANK_HUNTERS = (
+    Hunter(
+        hunter_id="hunter_01",
+        position_x=1050.0,
+        position_y=500.0,
     ),
 )
 
@@ -116,6 +124,7 @@ RIVERBANK_AREA_01 = StageArea(
     player_spawn_y=490.0,
     walkable_area=RIVERBANK_WALKABLE_AREA,
     scenery_objects=RIVERBANK_SCENERY_OBJECTS,
+    hunters=RIVERBANK_HUNTERS,
 )
 
 

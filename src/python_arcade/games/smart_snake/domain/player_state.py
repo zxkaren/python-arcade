@@ -8,6 +8,7 @@ class PlayerState:
     maximum_health: int = 100
     current_health: int = 100
     stored_mice: int = 0
+    score: int = 0
 
     # Resumo: armazena um rato respeitando a capacidade máxima do jogador.
     def store_mouse(self) -> None:
@@ -51,3 +52,9 @@ class PlayerState:
             return
 
         self.store_mouse()
+    # Resumo: adiciona pontos à pontuação do jogador.
+    def add_score(
+        self,
+        points: int,
+    ) -> None:
+        self.score += points

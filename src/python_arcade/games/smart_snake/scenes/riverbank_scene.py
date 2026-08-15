@@ -62,6 +62,9 @@ from python_arcade.games.smart_snake.ui.scenery_renderer import (
 from python_arcade.games.smart_snake.ui.smart_snake_renderer import (
     SmartSnakeRenderer,
 )
+from python_arcade.games.smart_snake.ui.player_score_renderer import (
+    PlayerScoreRenderer,
+)
 from python_arcade.games.smart_snake.world.scenery_collision_constraint import (
     SceneryCollisionConstraint,
 )
@@ -70,6 +73,10 @@ from python_arcade.games.smart_snake.world.stage_area_manager import (
 )
 from python_arcade.games.smart_snake.world.walkable_area_constraint import (
     WalkableAreaConstraint,
+)
+from python_arcade.games.smart_snake.domain.score_event import ScoreEvent
+from python_arcade.games.smart_snake.services.player_score_service import (
+    PlayerScoreService,
 )
 
 SMART_SNAKE_MOVEMENT_SPEED = 250.0
@@ -128,7 +135,7 @@ class RiverbankScene(BaseScene):
             frame_duration=SMART_SNAKE_ANIMATION_FRAME_DURATION,
         )
         self.player_state = PlayerState()
-
+        self.player_score_service = PlayerScoreService()
         self.mouse_projectile_controller = MouseProjectileController(
             projectile_launcher=MouseProjectileLauncher(),
             movement_controller=MouseProjectileMovementController(),
@@ -136,7 +143,7 @@ class RiverbankScene(BaseScene):
         self.mouse_consumption_service = MouseConsumptionService()
 
         self.player_hud_renderer = PlayerHudRenderer()
-        
+        self.player_score_renderer = PlayerScoreRenderer()
         self.walkable_area_constraint = WalkableAreaConstraint()
         self.scenery_collision_constraint = SceneryCollisionConstraint()
 
@@ -216,6 +223,11 @@ class RiverbankScene(BaseScene):
 
         if consumed_mouse is not None:
             self.player_state.process_consumed_mouse()
+
+            self.player_score_service.process_score_event(
+                player_state=self.player_state,
+                score_event=ScoreEvent.MOUSE_CONSUMED,
+            )
 
     # Resumo: mantém todo o sprite da Smart Snake dentro da área caminhável ativa.
     def constrain_smart_snake_to_walkable_area(self) -> None:
@@ -329,4 +341,8 @@ class RiverbankScene(BaseScene):
         self.player_hud_renderer.render_mouse_inventory(
             screen=screen,
             stored_mice=self.player_state.stored_mice,
+        )
+        self.player_score_renderer.render(
+            screen=screen,
+            score=self.player_state.score,
         )

@@ -26,6 +26,9 @@ from python_arcade.games.smart_snake.scenes.riverbank_scene import (
     SMART_SNAKE_ANIMATION_FRAME_DURATION,
     RiverbankScene,
 )
+from python_arcade.games.smart_snake.domain.player_life_event import (
+    PlayerLifeEvent,
+)
 
 
 # Resumo: prepara uma RiverbankScene utilizável nos testes sem abrir uma janela real.
@@ -912,3 +915,248 @@ def test_riverbank_scene_renders_player_score(
     )
 
     assert rendered_score == 150
+
+# Resumo: valida se alcançar 3000 pontos ao consumir um rato concede uma vida extra.
+# Parâmetros: riverbank_scene fornece a cena e monkeypatch simula ausência de movimento.
+# Retorno: nenhum.
+def test_riverbank_scene_grants_extra_life_at_score_milestone(
+    riverbank_scene: RiverbankScene,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    mouse = riverbank_scene.mice[0]
+
+    riverbank_scene.smart_snake.position_x = mouse.position_x
+    riverbank_scene.smart_snake.position_y = mouse.position_y
+
+    riverbank_scene.player_state.score = 2950
+
+    pressed_keys = defaultdict(bool)
+
+    monkeypatch.setattr(
+        pygame.key,
+        "get_pressed",
+        lambda: pressed_keys,
+    )
+
+    riverbank_scene.update(
+        delta_time=0.0,
+    )
+
+    assert riverbank_scene.player_state.score == 3000
+    assert riverbank_scene.player_state.lives == 4
+    assert riverbank_scene.extra_lives_granted_this_update == 1
+
+
+# Resumo: valida se o gatilho de vida extra permanece ativo somente no update da concessão.
+# Parâmetros: riverbank_scene fornece a cena e monkeypatch simula ausência de movimento.
+# Retorno: nenhum.
+def test_riverbank_scene_resets_extra_life_trigger_on_next_update(
+    riverbank_scene: RiverbankScene,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    mouse = riverbank_scene.mice[0]
+
+    riverbank_scene.smart_snake.position_x = mouse.position_x
+    riverbank_scene.smart_snake.position_y = mouse.position_y
+    riverbank_scene.player_state.score = 2950
+
+    pressed_keys = defaultdict(bool)
+
+    monkeypatch.setattr(
+        pygame.key,
+        "get_pressed",
+        lambda: pressed_keys,
+    )
+
+    riverbank_scene.update(
+        delta_time=0.0,
+    )
+
+    assert riverbank_scene.extra_lives_granted_this_update == 1
+
+    riverbank_scene.smart_snake.position_x = 0.0
+    riverbank_scene.smart_snake.position_y = 500.0
+
+    riverbank_scene.update(
+        delta_time=0.0,
+    )
+
+    assert riverbank_scene.extra_lives_granted_this_update == 0
+
+# Resumo: valida se a RiverbankScene renderiza a quantidade atual de vidas.
+# Parâmetros: riverbank_scene fornece a cena e monkeypatch intercepta o renderer das vidas.
+# Retorno: nenhum.
+def test_riverbank_scene_renders_player_lives(
+    riverbank_scene: RiverbankScene,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    rendered_lives = None
+
+    def capture_lives_render(
+        screen: pygame.Surface,
+        lives: int,
+    ) -> None:
+        nonlocal rendered_lives
+        rendered_lives = lives
+
+    monkeypatch.setattr(
+        riverbank_scene.player_lives_renderer,
+        "render",
+        capture_lives_render,
+    )
+
+    riverbank_scene.player_state.lives = 4
+
+    screen = pygame.Surface(
+        (SCREEN_WIDTH, SCREEN_HEIGHT)
+    )
+
+    riverbank_scene.render(
+        screen=screen,
+    )
+
+    assert rendered_lives == 4
+
+# Resumo: valida se HP zerado produz o gatilho de perda de vida durante o update.
+# Parâmetros: riverbank_scene fornece a cena e monkeypatch simula ausência de movimento.
+# Retorno: nenhum.
+def test_riverbank_scene_sets_life_lost_event_when_health_is_depleted(
+    riverbank_scene: RiverbankScene,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    riverbank_scene.player_state.current_health = 0
+    riverbank_scene.smart_snake.position_x = 0.0
+    riverbank_scene.smart_snake.position_y = 500.0
+
+    pressed_keys = defaultdict(bool)
+
+    monkeypatch.setattr(
+        pygame.key,
+        "get_pressed",
+        lambda: pressed_keys,
+    )
+
+    riverbank_scene.update(
+        delta_time=0.0,
+    )
+
+    assert (
+        riverbank_scene.player_life_event_this_update
+        == PlayerLifeEvent.LIFE_LOST
+    )
+    assert riverbank_scene.player_state.lives == 2
+    assert (
+        riverbank_scene.player_state.current_health
+        == riverbank_scene.player_state.maximum_health
+    )
+
+# Resumo: valida se o gatilho de perda de vida é limpo no update seguinte.
+# Parâmetros: riverbank_scene fornece a cena e monkeypatch simula ausência de movimento.
+# Retorno: nenhum.
+def test_riverbank_scene_resets_life_event_on_next_update(
+    riverbank_scene: RiverbankScene,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    riverbank_scene.player_state.current_health = 0
+    riverbank_scene.smart_snake.position_x = 0.0
+    riverbank_scene.smart_snake.position_y = 500.0
+
+    pressed_keys = defaultdict(bool)
+
+    monkeypatch.setattr(
+        pygame.key,
+        "get_pressed",
+        lambda: pressed_keys,
+    )
+
+    riverbank_scene.update(
+        delta_time=0.0,
+    )
+
+    assert (
+        riverbank_scene.player_life_event_this_update
+        == PlayerLifeEvent.LIFE_LOST
+    )
+
+    riverbank_scene.update(
+        delta_time=0.0,
+    )
+
+    assert (
+        riverbank_scene.player_life_event_this_update
+        == PlayerLifeEvent.NONE
+    )
+
+# Resumo: valida se perder a última vida produz o gatilho de Game Over.
+# Parâmetros: riverbank_scene fornece a cena e monkeypatch simula ausência de movimento.
+# Retorno: nenhum.
+def test_riverbank_scene_sets_game_over_event_after_last_life(
+    riverbank_scene: RiverbankScene,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    riverbank_scene.player_state.current_health = 0
+    riverbank_scene.player_state.lives = 1
+
+    riverbank_scene.smart_snake.position_x = 0.0
+    riverbank_scene.smart_snake.position_y = 500.0
+
+    pressed_keys = defaultdict(bool)
+
+    monkeypatch.setattr(
+        pygame.key,
+        "get_pressed",
+        lambda: pressed_keys,
+    )
+
+    riverbank_scene.update(
+        delta_time=0.0,
+    )
+
+    assert (
+        riverbank_scene.player_life_event_this_update
+        == PlayerLifeEvent.GAME_OVER
+    )
+    assert riverbank_scene.player_state.lives == 0
+    assert riverbank_scene.player_state.current_health == 0
+    assert riverbank_scene.is_game_over is True
+
+# Resumo: valida se o gatilho de Game Over ocorre apenas no update da derrota final.
+# Parâmetros: riverbank_scene fornece a cena e monkeypatch simula ausência de movimento.
+# Retorno: nenhum.
+def test_riverbank_scene_does_not_repeat_game_over_event(
+    riverbank_scene: RiverbankScene,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    riverbank_scene.player_state.current_health = 0
+    riverbank_scene.player_state.lives = 1
+
+    riverbank_scene.smart_snake.position_x = 0.0
+    riverbank_scene.smart_snake.position_y = 500.0
+
+    pressed_keys = defaultdict(bool)
+
+    monkeypatch.setattr(
+        pygame.key,
+        "get_pressed",
+        lambda: pressed_keys,
+    )
+
+    riverbank_scene.update(
+        delta_time=0.0,
+    )
+
+    assert (
+        riverbank_scene.player_life_event_this_update
+        == PlayerLifeEvent.GAME_OVER
+    )
+
+    riverbank_scene.update(
+        delta_time=0.0,
+    )
+
+    assert (
+        riverbank_scene.player_life_event_this_update
+        == PlayerLifeEvent.NONE
+    )
+    assert riverbank_scene.player_state.lives == 0
+    assert riverbank_scene.is_game_over is True

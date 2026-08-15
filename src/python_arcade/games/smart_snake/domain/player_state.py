@@ -9,6 +9,8 @@ class PlayerState:
     current_health: int = 100
     stored_mice: int = 0
     score: int = 0
+    lives: int = 3
+    score_life_milestones_reached: int = 0
 
     # Resumo: armazena um rato respeitando a capacidade máxima do jogador.
     def store_mouse(self) -> None:
@@ -58,3 +60,16 @@ class PlayerState:
         points: int,
     ) -> None:
         self.score += points
+
+    # Resumo: adiciona uma vida ao jogador.
+    def gain_life(self) -> None:
+        self.lives += 1
+
+    # Resumo: remove uma vida do jogador quando ainda existem vidas disponíveis.
+    def lose_life(self) -> bool:
+        if self.lives <= 0:
+            return False
+
+        self.lives -= 1
+
+        return True

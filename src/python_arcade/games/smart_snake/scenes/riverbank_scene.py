@@ -52,6 +52,9 @@ from python_arcade.games.smart_snake.ui.mouse_renderer import (
 from python_arcade.games.smart_snake.ui.player_hud_renderer import (
     PlayerHudRenderer,
 )
+from python_arcade.games.smart_snake.ui.hunter_renderer import (
+    HunterRenderer,
+)
 from python_arcade.games.smart_snake.ui.riverbank_environment_renderer import (
     RIVERBANK_ASSETS_DIRECTORY,
     RiverbankEnvironmentRenderer,
@@ -123,6 +126,7 @@ class RiverbankScene(BaseScene):
             road_center_y=RIVERBANK_ROAD_CENTER_Y,
         )
         self.mouse_renderer = MouseRenderer()
+        self.hunter_renderer = HunterRenderer()
         self.mouse_projectile_renderer = MouseProjectileRenderer()
         self.smart_snake_renderer = SmartSnakeRenderer()
 
@@ -345,6 +349,12 @@ class RiverbankScene(BaseScene):
                 position_x=mouse.position_x,
                 position_y=mouse.position_y,
                 direction=mouse.direction,
+            )
+        for hunter in active_area.hunters:
+            self.hunter_renderer.render(
+                screen=screen,
+                position_x=hunter.position_x,
+                position_y=hunter.position_y,
             )
         for mouse_projectile in (
             self.mouse_projectile_controller.active_projectiles

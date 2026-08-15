@@ -146,3 +146,42 @@ def test_player_state_accumulates_score() -> None:
     )
 
     assert player_state.score == 150
+
+# Resumo: valida se o jogador inicia a partida com três vidas.
+# Parâmetros: nenhum.
+# Retorno: nenhum.
+def test_player_state_starts_with_three_lives() -> None:
+    player_state = PlayerState()
+
+    assert player_state.lives == 3
+
+# Resumo: valida se o jogador pode receber uma vida adicional.
+def test_player_state_gains_life() -> None:
+    player_state = PlayerState()
+
+    player_state.gain_life()
+
+    assert player_state.lives == 4
+
+# Resumo: valida se o jogador perde uma vida quando ainda possui vidas disponíveis.
+# Parâmetros: nenhum.
+# Retorno: nenhum.
+def test_player_state_loses_life() -> None:
+    player_state = PlayerState()
+
+    life_was_lost = player_state.lose_life()
+
+    assert life_was_lost is True
+    assert player_state.lives == 2
+
+
+# Resumo: valida se a quantidade de vidas nunca fica negativa.
+def test_player_state_does_not_lose_life_below_zero() -> None:
+    player_state = PlayerState(
+        lives=0,
+    )
+
+    life_was_lost = player_state.lose_life()
+
+    assert life_was_lost is False
+    assert player_state.lives == 0

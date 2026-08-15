@@ -78,6 +78,15 @@ from python_arcade.games.smart_snake.domain.score_event import ScoreEvent
 from python_arcade.games.smart_snake.services.player_score_service import (
     PlayerScoreService,
 )
+from python_arcade.games.smart_snake.services.player_life_service import (
+    PlayerLifeService,
+)
+from python_arcade.games.smart_snake.ui.player_lives_renderer import (
+    PlayerLivesRenderer,
+)
+from python_arcade.games.smart_snake.domain.player_life_event import (
+    PlayerLifeEvent,
+)
 
 SMART_SNAKE_MOVEMENT_SPEED = 250.0
 SMART_SNAKE_ANIMATION_FRAME_DURATION = 0.2
@@ -140,10 +149,16 @@ class RiverbankScene(BaseScene):
             projectile_launcher=MouseProjectileLauncher(),
             movement_controller=MouseProjectileMovementController(),
         )
+        self.player_life_service = PlayerLifeService()
+
+        self.extra_lives_granted_this_update = 0
+        self.player_life_event_this_update = PlayerLifeEvent.NONE
+        self.is_game_over = False
         self.mouse_consumption_service = MouseConsumptionService()
 
         self.player_hud_renderer = PlayerHudRenderer()
         self.player_score_renderer = PlayerScoreRenderer()
+        self.player_lives_renderer = PlayerLivesRenderer()
         self.walkable_area_constraint = WalkableAreaConstraint()
         self.scenery_collision_constraint = SceneryCollisionConstraint()
 
@@ -171,6 +186,9 @@ class RiverbankScene(BaseScene):
         self,
         delta_time: float,
     ) -> None:
+        self.extra_lives_granted_this_update = 0
+        self.player_life_event_this_update = PlayerLifeEvent.NONE
+
         pressed_keys = pygame.key.get_pressed()
 
         direction_x, direction_y = (
@@ -224,10 +242,23 @@ class RiverbankScene(BaseScene):
         if consumed_mouse is not None:
             self.player_state.process_consumed_mouse()
 
-            self.player_score_service.process_score_event(
-                player_state=self.player_state,
-                score_event=ScoreEvent.MOUSE_CONSUMED,
+            self.extra_lives_granted_this_update = (
+                self.process_score_event(
+                    score_event=ScoreEvent.MOUSE_CONSUMED,
+                )
             )
+        if not self.is_game_over:
+            self.player_life_event_this_update = (
+                self.player_life_service.process_health_depletion(
+                    player_state=self.player_state,
+                )
+            )
+
+        if (
+            self.player_life_event_this_update
+            == PlayerLifeEvent.GAME_OVER
+        ):
+            self.is_game_over = True
 
     # Resumo: mantém todo o sprite da Smart Snake dentro da área caminhável ativa.
     def constrain_smart_snake_to_walkable_area(self) -> None:
@@ -338,6 +369,10 @@ class RiverbankScene(BaseScene):
             current_health=self.player_state.current_health,
             maximum_health=self.player_state.maximum_health,
         )
+        self.player_lives_renderer.render(
+            screen=screen,
+            lives=self.player_state.lives,
+        )
         self.player_hud_renderer.render_mouse_inventory(
             screen=screen,
             stored_mice=self.player_state.stored_mice,
@@ -345,4 +380,20 @@ class RiverbankScene(BaseScene):
         self.player_score_renderer.render(
             screen=screen,
             score=self.player_state.score,
+        )
+
+    # Resumo: processa um evento de pontuação e verifica novos marcos de vida extra.
+    # Parâmetros: score_event representa a ação do gameplay que concedeu pontos.
+    # Retorno: quantidade de vidas extras concedidas após a atualização do score.
+    def process_score_event(
+        self,
+        score_event: ScoreEvent,
+    ) -> int:
+        self.player_score_service.process_score_event(
+            player_state=self.player_state,
+            score_event=score_event,
+        )
+
+        return self.player_life_service.process_score_milestones(
+            player_state=self.player_state,
         )

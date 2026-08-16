@@ -40,3 +40,75 @@ def test_hunter_renderer_preserves_idle_render_width(
         == HUNTER_RENDER_WIDTH
     )
     assert renderer.idle_sprite_surface.get_height() > 0
+
+from python_arcade.games.smart_snake.domain.hunter import HunterDirection
+
+
+# Resumo: garante que cada direção selecione o conjunto visual esperado.
+# Parâmetros: nenhum.
+# Retorno: nenhum.
+def test_get_sprite_surface_uses_expected_direction_frames() -> None:
+    hunter_renderer = HunterRenderer.__new__(HunterRenderer)
+
+    idle_sprite_surface = object()
+    walk_left_sprite_surfaces = (
+        object(),
+        object(),
+    )
+    walk_right_sprite_surfaces = (
+        object(),
+        object(),
+    )
+    back_sprite_surfaces = (
+        object(),
+        object(),
+    )
+
+    hunter_renderer.idle_sprite_surface = idle_sprite_surface
+    hunter_renderer.walk_left_sprite_surfaces = (
+        walk_left_sprite_surfaces
+    )
+    hunter_renderer.walk_right_sprite_surfaces = (
+        walk_right_sprite_surfaces
+    )
+    hunter_renderer.back_sprite_surfaces = back_sprite_surfaces
+
+    assert (
+        hunter_renderer.get_sprite_surface(
+            direction=HunterDirection.UP,
+            frame_index=1,
+        )
+        is back_sprite_surfaces[1]
+    )
+
+    assert (
+        hunter_renderer.get_sprite_surface(
+            direction=HunterDirection.DOWN,
+            frame_index=0,
+        )
+        is walk_left_sprite_surfaces[0]
+    )
+
+    assert (
+        hunter_renderer.get_sprite_surface(
+            direction=HunterDirection.LEFT,
+            frame_index=1,
+        )
+        is walk_left_sprite_surfaces[1]
+    )
+
+    assert (
+        hunter_renderer.get_sprite_surface(
+            direction=HunterDirection.RIGHT,
+            frame_index=0,
+        )
+        is walk_right_sprite_surfaces[0]
+    )
+
+    assert (
+        hunter_renderer.get_sprite_surface(
+            direction=None,
+            frame_index=0,
+        )
+        is idle_sprite_surface
+    )

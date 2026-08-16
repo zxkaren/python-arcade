@@ -1161,24 +1161,25 @@ def test_riverbank_scene_does_not_repeat_game_over_event(
     assert riverbank_scene.player_state.lives == 0
     assert riverbank_scene.is_game_over is True
 
-# Resumo: valida se a RiverbankScene renderiza os Hunters da área ativa.
-# Parâmetros: riverbank_scene fornece a cena e monkeypatch intercepta o renderer.
-# Retorno: nenhum.
 def test_riverbank_scene_renders_hunters(
     riverbank_scene: RiverbankScene,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    rendered_hunter_positions: list[tuple[float, float]] = []
+    rendered_hunters = []
 
     def capture_hunter_render(
         screen: pygame.Surface,
         position_x: float,
         position_y: float,
+        direction,
+        frame_index: int,
     ) -> None:
-        rendered_hunter_positions.append(
+        rendered_hunters.append(
             (
                 position_x,
                 position_y,
+                direction,
+                frame_index,
             )
         )
 
@@ -1198,12 +1199,17 @@ def test_riverbank_scene_renders_hunters(
 
     active_area = riverbank_scene.stage_area_manager.get_active_area()
 
-    expected_hunter_positions = [
+    expected_rendered_hunters = [
         (
             hunter.position_x,
             hunter.position_y,
+            hunter.direction,
+            riverbank_scene.hunter_animation_frame_indices.get(
+                hunter.hunter_id,
+                0,
+            ),
         )
         for hunter in active_area.hunters
     ]
 
-    assert rendered_hunter_positions == expected_hunter_positions
+    assert rendered_hunters == expected_rendered_hunters

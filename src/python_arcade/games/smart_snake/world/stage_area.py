@@ -1,11 +1,12 @@
 from dataclasses import dataclass
 
-
+from python_arcade.games.smart_snake.domain.hunter import Hunter
+from python_arcade.games.smart_snake.world.hunter_patrol import HunterPatrol
 from python_arcade.games.smart_snake.world.scenery_object import (
     SceneryObject,
 )
 from python_arcade.games.smart_snake.world.walkable_area import WalkableArea
-from python_arcade.games.smart_snake.domain.hunter import Hunter
+
 
 # Representa uma área navegável pertencente a uma fase do jogo.
 @dataclass(frozen=True)
@@ -17,3 +18,4 @@ class StageArea:
     walkable_area: WalkableArea
     scenery_objects: tuple[SceneryObject, ...] = ()
     hunters: tuple[Hunter, ...] = ()
+    hunter_patrols: tuple[HunterPatrol, ...] = ()

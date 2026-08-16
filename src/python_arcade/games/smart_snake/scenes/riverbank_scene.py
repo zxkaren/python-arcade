@@ -90,6 +90,18 @@ from python_arcade.games.smart_snake.ui.player_lives_renderer import (
 from python_arcade.games.smart_snake.domain.player_life_event import (
     PlayerLifeEvent,
 )
+from python_arcade.games.smart_snake.controllers.hunter_movement_controller import (
+    HunterMovementController,
+)
+from python_arcade.games.smart_snake.controllers.hunter_patrol_controller import (
+    HunterPatrolController,
+)
+from python_arcade.games.smart_snake.controllers.hunter_route_controller import (
+    HunterRouteController,
+)
+from python_arcade.games.smart_snake.controllers.hunter_animation_controller import (
+    HunterAnimationController,
+)
 
 SMART_SNAKE_MOVEMENT_SPEED = 250.0
 SMART_SNAKE_ANIMATION_FRAME_DURATION = 0.2
@@ -97,6 +109,9 @@ SMART_SNAKE_ANIMATION_FRAME_DURATION = 0.2
 MOUSE_MOVEMENT_SPEED = 100.0
 MOUSE_PROJECTILE_MOVEMENT_SPEED = 500.0
 MOUSE_PROJECTILE_CLEANUP_MARGIN = 100.0
+
+HUNTER_ANIMATION_FRAME_COUNT = 2
+HUNTER_ANIMATION_FRAME_DURATION = 0.2
 
 RIVERBANK_ROAD_CENTER_Y = (
     RIVERBANK_ROAD_MINIMUM_Y
@@ -143,6 +158,19 @@ class RiverbankScene(BaseScene):
         self.mouse_route_controller = MouseRouteController(
             movement_controller=self.mouse_movement_controller,
         )
+        self.hunter_movement_controller = HunterMovementController()
+        self.hunter_route_controller = HunterRouteController(
+            movement_controller=self.hunter_movement_controller,
+        )
+        self.hunter_patrol_controller = HunterPatrolController(
+            route_controller=self.hunter_route_controller,
+        )
+        self.hunter_animation_controller = HunterAnimationController(
+            frame_count=HUNTER_ANIMATION_FRAME_COUNT,
+            frame_duration=HUNTER_ANIMATION_FRAME_DURATION,
+        )
+
+        self.hunter_animation_frame_indices: dict[str, int] = {}
         self.smart_snake_animation_controller = SmartSnakeAnimationController(
             frame_count=self.smart_snake_renderer.get_frame_count(),
             frame_duration=SMART_SNAKE_ANIMATION_FRAME_DURATION,
@@ -226,6 +254,12 @@ class RiverbankScene(BaseScene):
             )
         )
         self.update_mice_routes(
+            delta_time=delta_time,
+        )
+        self.update_hunter_patrols(
+            delta_time=delta_time,
+        )
+        self.update_hunter_animations(
             delta_time=delta_time,
         )
         self.mouse_projectile_controller.update_projectiles(
@@ -327,6 +361,44 @@ class RiverbankScene(BaseScene):
                 delta_time=delta_time,
             )
 
+    # Resumo: atualiza as patrulhas configuradas para os Hunters da área ativa.
+    def update_hunter_patrols(
+        self,
+        delta_time: float,
+    ) -> None:
+        active_area = self.stage_area_manager.get_active_area()
+
+        self.hunter_patrol_controller.update(
+            hunters=active_area.hunters,
+            hunter_patrols=active_area.hunter_patrols,
+            delta_time=delta_time,
+        )
+
+    # Resumo: atualiza os frames de animação dos Hunters em patrulha.
+    # Parâmetros: delta_time representa o tempo decorrido desde a última atualização.
+    # Retorno: nenhum.
+    def update_hunter_animations(
+        self,
+        delta_time: float,
+    ) -> None:
+        active_area = self.stage_area_manager.get_active_area()
+
+        patrolling_hunter_ids = {
+            hunter_patrol.hunter_id
+            for hunter_patrol in active_area.hunter_patrols
+        }
+
+        for hunter in active_area.hunters:
+            is_moving = hunter.hunter_id in patrolling_hunter_ids
+
+            self.hunter_animation_frame_indices[hunter.hunter_id] = (
+                self.hunter_animation_controller.update(
+                    hunter_id=hunter.hunter_id,
+                    delta_time=delta_time,
+                    is_moving=is_moving,
+                )
+            )
+
     # Resumo: renderiza o cenário Riverbank, seus objetos e a Smart Snake.
     def render(
         self,
@@ -355,6 +427,11 @@ class RiverbankScene(BaseScene):
                 screen=screen,
                 position_x=hunter.position_x,
                 position_y=hunter.position_y,
+                direction=hunter.direction,
+                frame_index=self.hunter_animation_frame_indices.get(
+                    hunter.hunter_id,
+                    0,
+                ),
             )
         for mouse_projectile in (
             self.mouse_projectile_controller.active_projectiles

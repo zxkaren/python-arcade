@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from python_arcade.games.smart_snake.domain.hunter import Hunter
+from python_arcade.games.smart_snake.world.hunter_attack import HunterAttack
 from python_arcade.games.smart_snake.world.hunter_patrol import HunterPatrol
 from python_arcade.games.smart_snake.world.scenery_object import (
     SceneryObject,
@@ -19,3 +20,4 @@ class StageArea:
     scenery_objects: tuple[SceneryObject, ...] = ()
     hunters: tuple[Hunter, ...] = ()
     hunter_patrols: tuple[HunterPatrol, ...] = ()
+    hunter_attacks: tuple[HunterAttack, ...] = ()

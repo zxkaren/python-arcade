@@ -3,6 +3,7 @@ from unittest.mock import Mock
 from python_arcade.games.smart_snake.scenes.riverbank_scene import (
     RiverbankScene,
 )
+from python_arcade.games.smart_snake.domain.hunter import HunterState
 
 
 # Resumo: garante que a Riverbank atualize a animação dos Hunters em patrulha.
@@ -11,6 +12,7 @@ from python_arcade.games.smart_snake.scenes.riverbank_scene import (
 def test_update_hunter_animations_uses_patrolling_hunters() -> None:
     hunter = Mock()
     hunter.hunter_id = "hunter_01"
+    hunter.state = HunterState.PATROLLING
 
     hunter_patrol = Mock()
     hunter_patrol.hunter_id = "hunter_01"
@@ -18,6 +20,7 @@ def test_update_hunter_animations_uses_patrolling_hunters() -> None:
     active_area = Mock()
     active_area.hunters = (hunter,)
     active_area.hunter_patrols = (hunter_patrol,)
+    active_area.hunter_attacks = ()
 
     stage_area_manager = Mock()
     stage_area_manager.get_active_area.return_value = active_area

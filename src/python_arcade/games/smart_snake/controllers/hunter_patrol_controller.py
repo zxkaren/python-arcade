@@ -1,7 +1,10 @@
 from python_arcade.games.smart_snake.controllers.hunter_route_controller import (
     HunterRouteController,
 )
-from python_arcade.games.smart_snake.domain.hunter import Hunter
+from python_arcade.games.smart_snake.domain.hunter import (
+    Hunter,
+    HunterState,
+)
 from python_arcade.games.smart_snake.world.hunter_patrol import (
     HunterPatrol,
     HunterPatrolAxis,
@@ -20,7 +23,7 @@ class HunterPatrolController:
     ) -> None:
         self.route_controller = route_controller
 
-    # Resumo: atualiza as patrulhas configuradas para os Hunters ativos.
+    # Resumo: atualiza as patrulhas dos Hunters que estão em estado de patrulha.
     # Parâmetros: hunters, hunter_patrols e tempo decorrido desde o último frame.
     # Retorno: nenhum.
     def update(
@@ -38,6 +41,9 @@ class HunterPatrolController:
             hunter = hunters_by_id.get(hunter_patrol.hunter_id)
 
             if hunter is None:
+                continue
+
+            if hunter.state != HunterState.PATROLLING:
                 continue
 
             if hunter_patrol.axis == HunterPatrolAxis.VERTICAL:

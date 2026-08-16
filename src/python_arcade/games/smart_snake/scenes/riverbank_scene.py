@@ -102,6 +102,13 @@ from python_arcade.games.smart_snake.controllers.hunter_route_controller import 
 from python_arcade.games.smart_snake.controllers.hunter_animation_controller import (
     HunterAnimationController,
 )
+from python_arcade.games.smart_snake.controllers.hunter_attack_controller import (
+    HunterAttackController,
+)
+from python_arcade.games.smart_snake.controllers.hunter_attack_range_checker import (
+    HunterAttackRangeChecker,
+)
+from python_arcade.games.smart_snake.domain.hunter import HunterState
 
 SMART_SNAKE_MOVEMENT_SPEED = 250.0
 SMART_SNAKE_ANIMATION_FRAME_DURATION = 0.2
@@ -111,7 +118,7 @@ MOUSE_PROJECTILE_MOVEMENT_SPEED = 500.0
 MOUSE_PROJECTILE_CLEANUP_MARGIN = 100.0
 
 HUNTER_ANIMATION_FRAME_COUNT = 2
-HUNTER_ANIMATION_FRAME_DURATION = 0.2
+HUNTER_ANIMATION_FRAME_DURATION = 0.4
 
 RIVERBANK_ROAD_CENTER_Y = (
     RIVERBANK_ROAD_MINIMUM_Y
@@ -139,6 +146,9 @@ class RiverbankScene(BaseScene):
         self.mice = MouseSpawner().spawn_from_bushes(
             scenery_objects=active_area.scenery_objects,
             road_center_y=RIVERBANK_ROAD_CENTER_Y,
+        )
+        self.hunter_attack_controller = HunterAttackController(
+            range_checker=HunterAttackRangeChecker(),
         )
         self.mouse_renderer = MouseRenderer()
         self.hunter_renderer = HunterRenderer()
@@ -256,6 +266,9 @@ class RiverbankScene(BaseScene):
         self.update_mice_routes(
             delta_time=delta_time,
         )
+        self.update_hunter_attacks(
+            delta_time=delta_time,
+        )
         self.update_hunter_patrols(
             delta_time=delta_time,
         )
@@ -361,6 +374,49 @@ class RiverbankScene(BaseScene):
                 delta_time=delta_time,
             )
 
+    # Resumo: atualiza os ciclos de ataque dos Hunters configurados na área ativa.
+    # Parâmetros: delta_time representa o tempo decorrido desde a última atualização.
+    def update_hunter_attacks(
+        self,
+        delta_time: float,
+    ) -> None:
+        active_area = self.stage_area_manager.get_active_area()
+
+        hunters_by_id = {
+            hunter.hunter_id: hunter
+            for hunter in active_area.hunters
+        }
+
+        for hunter_attack in active_area.hunter_attacks:
+            hunter = hunters_by_id.get(
+                hunter_attack.hunter_id
+            )
+
+            if hunter is None:
+                continue
+
+            self.hunter_attack_controller.update(
+                hunter=hunter,
+                hunter_attack=hunter_attack,
+                delta_time=delta_time,
+            )
+
+            attack_started = self.hunter_attack_controller.try_start_attack(
+                hunter=hunter,
+                hunter_attack=hunter_attack,
+                target_position_x=self.smart_snake.position_x,
+                target_position_y=self.smart_snake.position_y,
+            )
+
+            if not attack_started:
+                continue
+
+            self.hunter_animation_controller.reset(
+                hunter_id=hunter.hunter_id,
+            )
+
+            self.hunter_animation_frame_indices[hunter.hunter_id] = 0
+
     # Resumo: atualiza as patrulhas configuradas para os Hunters da área ativa.
     def update_hunter_patrols(
         self,
@@ -374,9 +430,8 @@ class RiverbankScene(BaseScene):
             delta_time=delta_time,
         )
 
-    # Resumo: atualiza os frames de animação dos Hunters em patrulha.
-    # Parâmetros: delta_time representa o tempo decorrido desde a última atualização.
-    # Retorno: nenhum.
+    # Resumo: atualiza os frames de animação dos Hunters da área ativa.
+    # Parâmetros: delta_time representa o tempo decorrido desde o último frame.
     def update_hunter_animations(
         self,
         delta_time: float,
@@ -388,15 +443,38 @@ class RiverbankScene(BaseScene):
             for hunter_patrol in active_area.hunter_patrols
         }
 
-        for hunter in active_area.hunters:
-            is_moving = hunter.hunter_id in patrolling_hunter_ids
+        hunter_attacks_by_id = {
+            hunter_attack.hunter_id: hunter_attack
+            for hunter_attack in active_area.hunter_attacks
+        }
 
-            self.hunter_animation_frame_indices[hunter.hunter_id] = (
-                self.hunter_animation_controller.update(
+        for hunter in active_area.hunters:
+            is_animating = (
+                hunter.hunter_id in patrolling_hunter_ids
+                or hunter.state == HunterState.ATTACKING
+            )
+
+            hunter_attack = hunter_attacks_by_id.get(hunter.hunter_id)
+
+            if (
+                hunter.state == HunterState.ATTACKING
+                and hunter_attack is not None
+            ):
+                frame_index = self.hunter_animation_controller.update(
                     hunter_id=hunter.hunter_id,
                     delta_time=delta_time,
-                    is_moving=is_moving,
+                    is_moving=is_animating,
+                    frame_duration=hunter_attack.animation_frame_duration,
                 )
+            else:
+                frame_index = self.hunter_animation_controller.update(
+                    hunter_id=hunter.hunter_id,
+                    delta_time=delta_time,
+                    is_moving=is_animating,
+                )
+
+            self.hunter_animation_frame_indices[hunter.hunter_id] = (
+                frame_index
             )
 
     # Resumo: renderiza o cenário Riverbank, seus objetos e a Smart Snake.
@@ -432,6 +510,7 @@ class RiverbankScene(BaseScene):
                     hunter.hunter_id,
                     0,
                 ),
+                state=hunter.state,
             )
         for mouse_projectile in (
             self.mouse_projectile_controller.active_projectiles

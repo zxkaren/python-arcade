@@ -10,6 +10,7 @@ from python_arcade.games.smart_snake.controllers.hunter_route_controller import 
 from python_arcade.games.smart_snake.domain.hunter import (
     Hunter,
     HunterDirection,
+    HunterState,
 )
 from python_arcade.games.smart_snake.world.hunter_patrol import (
     HunterPatrol,
@@ -53,3 +54,42 @@ def test_update_vertical_hunter_patrol() -> None:
     assert hunter.position_x == 1050.0
     assert hunter.position_y == 420.0
     assert hunter.direction == HunterDirection.DOWN
+
+
+# Resumo: garante que um Hunter atacando permaneça parado durante a patrulha.
+# Parâmetros: nenhum.
+# Retorno: nenhum.
+def test_attacking_hunter_does_not_patrol() -> None:
+    hunter = Hunter(
+        hunter_id="hunter_01",
+        position_x=1050.0,
+        position_y=500.0,
+        direction=HunterDirection.UP,
+        state=HunterState.ATTACKING,
+    )
+
+    hunter_patrol = HunterPatrol(
+        hunter_id="hunter_01",
+        axis=HunterPatrolAxis.VERTICAL,
+        minimum_position=380.0,
+        maximum_position=520.0,
+        movement_speed=120.0,
+    )
+
+    movement_controller = HunterMovementController()
+    route_controller = HunterRouteController(
+        movement_controller=movement_controller,
+    )
+    patrol_controller = HunterPatrolController(
+        route_controller=route_controller,
+    )
+
+    patrol_controller.update(
+        hunters=(hunter,),
+        hunter_patrols=(hunter_patrol,),
+        delta_time=0.1,
+    )
+
+    assert hunter.position_x == 1050.0
+    assert hunter.position_y == 500.0
+    assert hunter.direction == HunterDirection.UP

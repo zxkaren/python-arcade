@@ -3,7 +3,10 @@ from pathlib import Path
 import pygame
 
 from python_arcade.games.smart_snake.domain.hunter import HunterDirection
-
+from python_arcade.games.smart_snake.domain.hunter import (
+    HunterDirection,
+    HunterState,
+)
 
 HUNTER_ASSETS_DIRECTORY = (
     Path(__file__).resolve().parents[1]
@@ -25,8 +28,14 @@ HUNTER_BACK_SPRITE_PATHS = (
     HUNTER_ASSETS_DIRECTORY / "hunter_back1.png",
 )
 
+HUNTER_ATTACK_SPRITE_PATHS = (
+    HUNTER_ASSETS_DIRECTORY / "hunter_attack0.png",
+    HUNTER_ASSETS_DIRECTORY / "hunter_attack1.png",
+)
+
 HUNTER_RENDER_WIDTH = 400
 HUNTER_BACK_RENDER_WIDTH = 310
+HUNTER_ATTACK_RENDER_WIDTH = 290
 
 
 # Responsável pela representação visual do Hunter comum durante o gameplay.
@@ -61,6 +70,13 @@ class HunterRenderer:
             )
             for sprite_path in HUNTER_BACK_SPRITE_PATHS
         )
+        self.attack_sprite_surfaces = tuple(
+            self.load_and_scale_sprite(
+                sprite_path=sprite_path,
+                render_width=HUNTER_ATTACK_RENDER_WIDTH,
+            )
+            for sprite_path in HUNTER_ATTACK_SPRITE_PATHS
+        )
 
     # Resumo: carrega e redimensiona o sprite do Hunter preservando sua proporção.
     # Parâmetros: sprite_path representa o caminho da imagem e render_width sua largura final.
@@ -86,14 +102,21 @@ class HunterRenderer:
             (render_width, render_height),
         )
 
-    # Resumo: seleciona o sprite correspondente à direção e ao frame atual.
-    # Parâmetros: direction representa a direção e frame_index o frame da animação.
-    # Retorno: superfície correspondente ao estado visual do Hunter.
+    # Resumo: seleciona o sprite correspondente ao estado, direção e frame atual.
+    # Parâmetros: state, direction e frame_index representam o estado visual do Hunter.
+    # Retorno: superfície correspondente ao estado visual atual.
     def get_sprite_surface(
         self,
         direction: HunterDirection | None,
         frame_index: int,
+        state: HunterState = HunterState.PATROLLING,
     ) -> pygame.Surface:
+        if state == HunterState.ATTACKING:
+            normalized_frame_index = (
+                frame_index % len(self.attack_sprite_surfaces)
+            )
+            return self.attack_sprite_surfaces[normalized_frame_index]
+
         if direction is None:
             return self.idle_sprite_surface
 
@@ -108,8 +131,8 @@ class HunterRenderer:
 
         return sprite_surfaces[normalized_frame_index]
 
-    # Resumo: desenha o Hunter utilizando direção, posição e frame atual.
-    # Parâmetros: screen, posição, direção e índice do frame da animação.
+    # Resumo: desenha o Hunter utilizando estado, direção, posição e frame atual.
+    # Parâmetros: tela, posição, direção, frame e estado atual do Hunter.
     # Retorno: nenhum.
     def render(
         self,
@@ -118,10 +141,12 @@ class HunterRenderer:
         position_y: float,
         direction: HunterDirection | None = None,
         frame_index: int = 0,
+        state: HunterState = HunterState.PATROLLING,
     ) -> None:
         sprite_surface = self.get_sprite_surface(
             direction=direction,
             frame_index=frame_index,
+            state=state,
         )
 
         sprite_rectangle = sprite_surface.get_rect(

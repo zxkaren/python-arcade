@@ -3,6 +3,10 @@ from collections.abc import Generator
 import pygame
 import pytest
 
+from python_arcade.games.smart_snake.domain.hunter import (
+    HunterDirection,
+    HunterState,
+)
 from python_arcade.games.smart_snake.ui.hunter_renderer import (
     HUNTER_RENDER_WIDTH,
     HunterRenderer,
@@ -40,8 +44,6 @@ def test_hunter_renderer_preserves_idle_render_width(
         == HUNTER_RENDER_WIDTH
     )
     assert renderer.idle_sprite_surface.get_height() > 0
-
-from python_arcade.games.smart_snake.domain.hunter import HunterDirection
 
 
 # Resumo: garante que cada direção selecione o conjunto visual esperado.
@@ -112,3 +114,38 @@ def test_get_sprite_surface_uses_expected_direction_frames() -> None:
         )
         is idle_sprite_surface
     )
+
+
+# Resumo: garante que o estado de ataque tenha prioridade sobre a direção.
+# Parâmetros: nenhum.
+# Retorno: nenhum.
+def test_get_sprite_surface_uses_attack_frames_when_attacking() -> None:
+    hunter_renderer = HunterRenderer.__new__(HunterRenderer)
+
+    hunter_renderer.idle_sprite_surface = object()
+    hunter_renderer.walk_left_sprite_surfaces = (
+        object(),
+        object(),
+    )
+    hunter_renderer.walk_right_sprite_surfaces = (
+        object(),
+        object(),
+    )
+    hunter_renderer.back_sprite_surfaces = (
+        object(),
+        object(),
+    )
+
+    attack_sprite_surfaces = (
+        object(),
+        object(),
+    )
+    hunter_renderer.attack_sprite_surfaces = attack_sprite_surfaces
+
+    selected_sprite_surface = hunter_renderer.get_sprite_surface(
+        direction=HunterDirection.UP,
+        frame_index=1,
+        state=HunterState.ATTACKING,
+    )
+
+    assert selected_sprite_surface is attack_sprite_surfaces[1]

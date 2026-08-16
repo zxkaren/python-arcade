@@ -1,4 +1,11 @@
 from python_arcade.games.smart_snake.config.game_settings import SCREEN_WIDTH
+from python_arcade.games.smart_snake.domain.hunter import Hunter
+from python_arcade.games.smart_snake.world.collision_box import CollisionBox
+from python_arcade.games.smart_snake.world.hunter_attack import HunterAttack
+from python_arcade.games.smart_snake.world.hunter_patrol import (
+    HunterPatrol,
+    HunterPatrolAxis,
+)
 from python_arcade.games.smart_snake.world.scenery_object import (
     SceneryObject,
 )
@@ -7,12 +14,8 @@ from python_arcade.games.smart_snake.world.walkable_area import (
     WalkableArea,
     WalkableRegion,
 )
-from python_arcade.games.smart_snake.world.collision_box import CollisionBox
-from python_arcade.games.smart_snake.domain.hunter import Hunter
-from python_arcade.games.smart_snake.world.hunter_patrol import (
-    HunterPatrol,
-    HunterPatrolAxis,
-)
+
+
 RIVERBANK_ROAD_MINIMUM_Y = 370.0
 RIVERBANK_ROAD_MAXIMUM_Y = 650.0
 
@@ -20,11 +23,21 @@ RIVERBANK_HUNTER_PATROL_MINIMUM_Y = 380.0
 RIVERBANK_HUNTER_PATROL_MAXIMUM_Y = 520.0
 RIVERBANK_HUNTER_MOVEMENT_SPEED = 120.0
 
+RIVERBANK_HUNTER_ATTACK_RANGE_X = 220.0
+RIVERBANK_HUNTER_ATTACK_RANGE_Y = 100.0
+
+RIVERBANK_HUNTER_ATTACK_ANIMATION_FRAME_DURATION = 0.30
+RIVERBANK_HUNTER_ATTACK_DURATION = 0.60
+
+RIVERBANK_HUNTER_ATTACK_COOLDOWN_DURATION = 1.0
+
+
 ROCK_01_COLLISION_BOX = CollisionBox(
     width=120.0,
     height=70.0,
     offset_y=20.0,
 )
+
 
 TREE_02_COLLISION_BOX = CollisionBox(
     width=60.0,
@@ -44,6 +57,7 @@ RIVERBANK_WALKABLE_AREA = WalkableArea(
     ),
 )
 
+
 RIVERBANK_HUNTERS = (
     Hunter(
         hunter_id="hunter_01",
@@ -52,6 +66,7 @@ RIVERBANK_HUNTERS = (
     ),
 )
 
+
 RIVERBANK_HUNTER_PATROLS = (
     HunterPatrol(
         hunter_id="hunter_01",
@@ -59,6 +74,20 @@ RIVERBANK_HUNTER_PATROLS = (
         minimum_position=RIVERBANK_HUNTER_PATROL_MINIMUM_Y,
         maximum_position=RIVERBANK_HUNTER_PATROL_MAXIMUM_Y,
         movement_speed=RIVERBANK_HUNTER_MOVEMENT_SPEED,
+    ),
+)
+
+
+RIVERBANK_HUNTER_ATTACKS = (
+    HunterAttack(
+        hunter_id="hunter_01",
+        range_x=RIVERBANK_HUNTER_ATTACK_RANGE_X,
+        range_y=RIVERBANK_HUNTER_ATTACK_RANGE_Y,
+        attack_duration=RIVERBANK_HUNTER_ATTACK_DURATION,
+        animation_frame_duration=(
+            RIVERBANK_HUNTER_ATTACK_ANIMATION_FRAME_DURATION
+        ),
+        cooldown_duration=RIVERBANK_HUNTER_ATTACK_COOLDOWN_DURATION,
     ),
 )
 
@@ -134,6 +163,7 @@ RIVERBANK_SCENERY_OBJECTS = (
     ),
 )
 
+
 RIVERBANK_AREA_01 = StageArea(
     area_id="riverbank_area_01",
     background_asset_name="riverbank_background.png",
@@ -143,6 +173,7 @@ RIVERBANK_AREA_01 = StageArea(
     scenery_objects=RIVERBANK_SCENERY_OBJECTS,
     hunters=RIVERBANK_HUNTERS,
     hunter_patrols=RIVERBANK_HUNTER_PATROLS,
+    hunter_attacks=RIVERBANK_HUNTER_ATTACKS,
 )
 
 

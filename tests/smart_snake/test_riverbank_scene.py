@@ -1161,6 +1161,9 @@ def test_riverbank_scene_does_not_repeat_game_over_event(
     assert riverbank_scene.player_state.lives == 0
     assert riverbank_scene.is_game_over is True
 
+
+# Resumo: valida se a RiverbankScene renderiza os Hunters com posição, direção, frame e estado atuais.
+# Parâmetros: riverbank_scene fornece a cena e monkeypatch intercepta o renderer.
 def test_riverbank_scene_renders_hunters(
     riverbank_scene: RiverbankScene,
     monkeypatch: pytest.MonkeyPatch,
@@ -1173,6 +1176,7 @@ def test_riverbank_scene_renders_hunters(
         position_y: float,
         direction,
         frame_index: int,
+        state,
     ) -> None:
         rendered_hunters.append(
             (
@@ -1180,6 +1184,7 @@ def test_riverbank_scene_renders_hunters(
                 position_y,
                 direction,
                 frame_index,
+                state,
             )
         )
 
@@ -1208,6 +1213,7 @@ def test_riverbank_scene_renders_hunters(
                 hunter.hunter_id,
                 0,
             ),
+            hunter.state,
         )
         for hunter in active_area.hunters
     ]

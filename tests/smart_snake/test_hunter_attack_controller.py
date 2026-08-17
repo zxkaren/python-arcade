@@ -124,3 +124,26 @@ def test_hunter_does_not_attack_during_cooldown() -> None:
 
     assert hunter.state == HunterState.PATROLLING
     assert attack_started is False
+
+# Resumo: garante que um Hunter derrotado não possa iniciar um novo ataque.
+def test_defeated_hunter_does_not_start_attack() -> None:
+    hunter = Hunter(
+        hunter_id="hunter_01",
+        position_x=1050.0,
+        position_y=500.0,
+        state=HunterState.DEFEATED,
+    )
+
+    attack_controller = HunterAttackController(
+        range_checker=HunterAttackRangeChecker(),
+    )
+
+    attack_started = attack_controller.try_start_attack(
+        hunter=hunter,
+        hunter_attack=create_hunter_attack(),
+        target_position_x=900.0,
+        target_position_y=450.0,
+    )
+
+    assert attack_started is False
+    assert hunter.state == HunterState.DEFEATED

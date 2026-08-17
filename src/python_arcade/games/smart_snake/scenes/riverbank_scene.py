@@ -4,6 +4,9 @@ from python_arcade.games.smart_snake.config.game_settings import (
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
 )
+from python_arcade.games.smart_snake.content.hunter_collision import (
+    HUNTER_COLLISION_BOX,
+)
 from python_arcade.games.smart_snake.content.riverbank_areas import (
     RIVERBANK_INITIAL_AREA_ID,
     RIVERBANK_ROAD_MAXIMUM_Y,
@@ -12,6 +15,27 @@ from python_arcade.games.smart_snake.content.riverbank_areas import (
 )
 from python_arcade.games.smart_snake.content.smart_snake_collision import (
     SMART_SNAKE_COLLISION_BOX,
+)
+from python_arcade.games.smart_snake.controllers.hunter_animation_controller import (
+    HunterAnimationController,
+)
+from python_arcade.games.smart_snake.controllers.hunter_attack_controller import (
+    HunterAttackController,
+)
+from python_arcade.games.smart_snake.controllers.hunter_attack_range_checker import (
+    HunterAttackRangeChecker,
+)
+from python_arcade.games.smart_snake.controllers.hunter_defeat_controller import (
+    HunterDefeatController,
+)
+from python_arcade.games.smart_snake.controllers.hunter_movement_controller import (
+    HunterMovementController,
+)
+from python_arcade.games.smart_snake.controllers.hunter_patrol_controller import (
+    HunterPatrolController,
+)
+from python_arcade.games.smart_snake.controllers.hunter_route_controller import (
+    HunterRouteController,
 )
 from python_arcade.games.smart_snake.controllers.mouse_movement_controller import (
     MouseMovementController,
@@ -31,17 +55,34 @@ from python_arcade.games.smart_snake.controllers.player_movement_controller impo
 from python_arcade.games.smart_snake.controllers.smart_snake_animation_controller import (
     SmartSnakeAnimationController,
 )
+from python_arcade.games.smart_snake.domain.hunter import HunterState
+from python_arcade.games.smart_snake.domain.player_life_event import (
+    PlayerLifeEvent,
+)
 from python_arcade.games.smart_snake.domain.player_state import PlayerState
+from python_arcade.games.smart_snake.domain.score_event import ScoreEvent
 from python_arcade.games.smart_snake.domain.smart_snake import SmartSnake
 from python_arcade.games.smart_snake.scenes.base_scene import BaseScene
 from python_arcade.games.smart_snake.services.mouse_consumption_service import (
     MouseConsumptionService,
+)
+from python_arcade.games.smart_snake.services.mouse_projectile_hit_service import (
+    MouseProjectileHitService,
 )
 from python_arcade.games.smart_snake.services.mouse_projectile_launcher import (
     MouseProjectileLauncher,
 )
 from python_arcade.games.smart_snake.services.mouse_spawner import (
     MouseSpawner,
+)
+from python_arcade.games.smart_snake.services.player_life_service import (
+    PlayerLifeService,
+)
+from python_arcade.games.smart_snake.services.player_score_service import (
+    PlayerScoreService,
+)
+from python_arcade.games.smart_snake.ui.hunter_renderer import (
+    HunterRenderer,
 )
 from python_arcade.games.smart_snake.ui.mouse_projectile_renderer import (
     MouseProjectileRenderer,
@@ -52,8 +93,11 @@ from python_arcade.games.smart_snake.ui.mouse_renderer import (
 from python_arcade.games.smart_snake.ui.player_hud_renderer import (
     PlayerHudRenderer,
 )
-from python_arcade.games.smart_snake.ui.hunter_renderer import (
-    HunterRenderer,
+from python_arcade.games.smart_snake.ui.player_lives_renderer import (
+    PlayerLivesRenderer,
+)
+from python_arcade.games.smart_snake.ui.player_score_renderer import (
+    PlayerScoreRenderer,
 )
 from python_arcade.games.smart_snake.ui.riverbank_environment_renderer import (
     RIVERBANK_ASSETS_DIRECTORY,
@@ -65,9 +109,6 @@ from python_arcade.games.smart_snake.ui.scenery_renderer import (
 from python_arcade.games.smart_snake.ui.smart_snake_renderer import (
     SmartSnakeRenderer,
 )
-from python_arcade.games.smart_snake.ui.player_score_renderer import (
-    PlayerScoreRenderer,
-)
 from python_arcade.games.smart_snake.world.scenery_collision_constraint import (
     SceneryCollisionConstraint,
 )
@@ -77,38 +118,6 @@ from python_arcade.games.smart_snake.world.stage_area_manager import (
 from python_arcade.games.smart_snake.world.walkable_area_constraint import (
     WalkableAreaConstraint,
 )
-from python_arcade.games.smart_snake.domain.score_event import ScoreEvent
-from python_arcade.games.smart_snake.services.player_score_service import (
-    PlayerScoreService,
-)
-from python_arcade.games.smart_snake.services.player_life_service import (
-    PlayerLifeService,
-)
-from python_arcade.games.smart_snake.ui.player_lives_renderer import (
-    PlayerLivesRenderer,
-)
-from python_arcade.games.smart_snake.domain.player_life_event import (
-    PlayerLifeEvent,
-)
-from python_arcade.games.smart_snake.controllers.hunter_movement_controller import (
-    HunterMovementController,
-)
-from python_arcade.games.smart_snake.controllers.hunter_patrol_controller import (
-    HunterPatrolController,
-)
-from python_arcade.games.smart_snake.controllers.hunter_route_controller import (
-    HunterRouteController,
-)
-from python_arcade.games.smart_snake.controllers.hunter_animation_controller import (
-    HunterAnimationController,
-)
-from python_arcade.games.smart_snake.controllers.hunter_attack_controller import (
-    HunterAttackController,
-)
-from python_arcade.games.smart_snake.controllers.hunter_attack_range_checker import (
-    HunterAttackRangeChecker,
-)
-from python_arcade.games.smart_snake.domain.hunter import HunterState
 
 SMART_SNAKE_MOVEMENT_SPEED = 250.0
 SMART_SNAKE_ANIMATION_FRAME_DURATION = 0.2
@@ -120,10 +129,14 @@ MOUSE_PROJECTILE_CLEANUP_MARGIN = 100.0
 HUNTER_ANIMATION_FRAME_COUNT = 2
 HUNTER_ANIMATION_FRAME_DURATION = 0.4
 
+HUNTER_DEFEAT_DURATION = 1.2
+HUNTER_DEFEAT_BLINK_COUNT = 2
+
 RIVERBANK_ROAD_CENTER_Y = (
     RIVERBANK_ROAD_MINIMUM_Y
     + RIVERBANK_ROAD_MAXIMUM_Y
 ) / 2
+
 
 # Representa a primeira área jogável da aventura.
 class RiverbankScene(BaseScene):
@@ -147,9 +160,11 @@ class RiverbankScene(BaseScene):
             scenery_objects=active_area.scenery_objects,
             road_center_y=RIVERBANK_ROAD_CENTER_Y,
         )
+
         self.hunter_attack_controller = HunterAttackController(
             range_checker=HunterAttackRangeChecker(),
         )
+
         self.mouse_renderer = MouseRenderer()
         self.hunter_renderer = HunterRenderer()
         self.mouse_projectile_renderer = MouseProjectileRenderer()
@@ -168,6 +183,7 @@ class RiverbankScene(BaseScene):
         self.mouse_route_controller = MouseRouteController(
             movement_controller=self.mouse_movement_controller,
         )
+
         self.hunter_movement_controller = HunterMovementController()
         self.hunter_route_controller = HunterRouteController(
             movement_controller=self.hunter_movement_controller,
@@ -179,28 +195,42 @@ class RiverbankScene(BaseScene):
             frame_count=HUNTER_ANIMATION_FRAME_COUNT,
             frame_duration=HUNTER_ANIMATION_FRAME_DURATION,
         )
+        self.hunter_defeat_controller = HunterDefeatController(
+            defeat_duration=HUNTER_DEFEAT_DURATION,
+            blink_count=HUNTER_DEFEAT_BLINK_COUNT,
+        )
 
         self.hunter_animation_frame_indices: dict[str, int] = {}
-        self.smart_snake_animation_controller = SmartSnakeAnimationController(
-            frame_count=self.smart_snake_renderer.get_frame_count(),
-            frame_duration=SMART_SNAKE_ANIMATION_FRAME_DURATION,
+        self.removed_hunter_ids: set[str] = set()
+
+        self.smart_snake_animation_controller = (
+            SmartSnakeAnimationController(
+                frame_count=self.smart_snake_renderer.get_frame_count(),
+                frame_duration=SMART_SNAKE_ANIMATION_FRAME_DURATION,
+            )
         )
+
         self.player_state = PlayerState()
         self.player_score_service = PlayerScoreService()
+
         self.mouse_projectile_controller = MouseProjectileController(
             projectile_launcher=MouseProjectileLauncher(),
             movement_controller=MouseProjectileMovementController(),
         )
+        self.mouse_projectile_hit_service = MouseProjectileHitService()
+
         self.player_life_service = PlayerLifeService()
 
         self.extra_lives_granted_this_update = 0
         self.player_life_event_this_update = PlayerLifeEvent.NONE
         self.is_game_over = False
+
         self.mouse_consumption_service = MouseConsumptionService()
 
         self.player_hud_renderer = PlayerHudRenderer()
         self.player_score_renderer = PlayerScoreRenderer()
         self.player_lives_renderer = PlayerLivesRenderer()
+
         self.walkable_area_constraint = WalkableAreaConstraint()
         self.scenery_collision_constraint = SceneryCollisionConstraint()
 
@@ -263,41 +293,57 @@ class RiverbankScene(BaseScene):
                 is_moving=is_moving,
             )
         )
+
         self.update_mice_routes(
             delta_time=delta_time,
         )
+
         self.update_hunter_attacks(
             delta_time=delta_time,
         )
+
         self.update_hunter_patrols(
             delta_time=delta_time,
         )
+
         self.update_hunter_animations(
             delta_time=delta_time,
         )
+
         self.mouse_projectile_controller.update_projectiles(
             movement_speed=MOUSE_PROJECTILE_MOVEMENT_SPEED,
             delta_time=delta_time,
         )
+
+        self.process_mouse_projectile_hits()
+
+        self.update_hunter_defeats(
+            delta_time=delta_time,
+        )
+
         self.mouse_projectile_controller.remove_projectiles_outside_bounds(
             minimum_x=-MOUSE_PROJECTILE_CLEANUP_MARGIN,
             maximum_x=SCREEN_WIDTH + MOUSE_PROJECTILE_CLEANUP_MARGIN,
             minimum_y=-MOUSE_PROJECTILE_CLEANUP_MARGIN,
             maximum_y=SCREEN_HEIGHT + MOUSE_PROJECTILE_CLEANUP_MARGIN,
         )
-        consumed_mouse = self.mouse_consumption_service.consume_colliding_mouse(
-            smart_snake=self.smart_snake,
-            mice=self.mice,
+
+        consumed_mouse = (
+            self.mouse_consumption_service.consume_colliding_mouse(
+                smart_snake=self.smart_snake,
+                mice=self.mice,
+            )
         )
 
         if consumed_mouse is not None:
             self.player_state.process_consumed_mouse()
 
-            self.extra_lives_granted_this_update = (
+            self.extra_lives_granted_this_update += (
                 self.process_score_event(
                     score_event=ScoreEvent.MOUSE_CONSUMED,
                 )
             )
+
         if not self.is_game_over:
             self.player_life_event_this_update = (
                 self.player_life_service.process_health_depletion(
@@ -353,7 +399,7 @@ class RiverbankScene(BaseScene):
 
         self.smart_snake.position_x = constrained_position_x
         self.smart_snake.position_y = constrained_position_y
-    
+
     # Resumo: atualiza as trajetórias verticais de todos os ratos ativos na Riverbank.
     # Parâmetros: delta_time representa o tempo decorrido desde a última atualização.
     # Retorno: nenhum.
@@ -401,11 +447,13 @@ class RiverbankScene(BaseScene):
                 delta_time=delta_time,
             )
 
-            attack_started = self.hunter_attack_controller.try_start_attack(
-                hunter=hunter,
-                hunter_attack=hunter_attack,
-                target_position_x=self.smart_snake.position_x,
-                target_position_y=self.smart_snake.position_y,
+            attack_started = (
+                self.hunter_attack_controller.try_start_attack(
+                    hunter=hunter,
+                    hunter_attack=hunter_attack,
+                    target_position_x=self.smart_snake.position_x,
+                    target_position_y=self.smart_snake.position_y,
+                )
             )
 
             if not attack_started:
@@ -454,27 +502,86 @@ class RiverbankScene(BaseScene):
                 or hunter.state == HunterState.ATTACKING
             )
 
-            hunter_attack = hunter_attacks_by_id.get(hunter.hunter_id)
+            hunter_attack = hunter_attacks_by_id.get(
+                hunter.hunter_id
+            )
 
             if (
                 hunter.state == HunterState.ATTACKING
                 and hunter_attack is not None
             ):
-                frame_index = self.hunter_animation_controller.update(
-                    hunter_id=hunter.hunter_id,
-                    delta_time=delta_time,
-                    is_moving=is_animating,
-                    frame_duration=hunter_attack.animation_frame_duration,
+                frame_index = (
+                    self.hunter_animation_controller.update(
+                        hunter_id=hunter.hunter_id,
+                        delta_time=delta_time,
+                        is_moving=is_animating,
+                        frame_duration=(
+                            hunter_attack.animation_frame_duration
+                        ),
+                    )
                 )
             else:
-                frame_index = self.hunter_animation_controller.update(
-                    hunter_id=hunter.hunter_id,
-                    delta_time=delta_time,
-                    is_moving=is_animating,
+                frame_index = (
+                    self.hunter_animation_controller.update(
+                        hunter_id=hunter.hunter_id,
+                        delta_time=delta_time,
+                        is_moving=is_animating,
+                    )
                 )
 
             self.hunter_animation_frame_indices[hunter.hunter_id] = (
                 frame_index
+            )
+
+    # Resumo: processa impactos dos projéteis ativos contra os Hunters da área.
+    # Parâmetros: nenhum.
+    # Retorno: nenhum.
+    def process_mouse_projectile_hits(self) -> None:
+        active_area = self.stage_area_manager.get_active_area()
+
+        for hunter in active_area.hunters:
+            if hunter.state == HunterState.DEFEATED:
+                continue
+
+            self.mouse_projectile_hit_service.hit_target(
+                target=hunter,
+                target_collision_box=HUNTER_COLLISION_BOX,
+                mouse_projectiles=(
+                    self.mouse_projectile_controller.active_projectiles
+                ),
+            )
+
+    # Resumo: finaliza derrotas, remove Hunters do gameplay e concede sua pontuação.
+    # Parâmetros: delta_time representa o tempo decorrido desde o último frame.
+    def update_hunter_defeats(
+        self,
+        delta_time: float,
+    ) -> None:
+        active_area = self.stage_area_manager.get_active_area()
+
+        for hunter in active_area.hunters:
+            if hunter.hunter_id in self.removed_hunter_ids:
+                continue
+
+            if hunter.state != HunterState.DEFEATED:
+                continue
+
+            defeat_finished = self.hunter_defeat_controller.update(
+                hunter_id=hunter.hunter_id,
+                delta_time=delta_time,
+            )
+
+            if not defeat_finished:
+                continue
+
+            self.removed_hunter_ids.add(
+                hunter.hunter_id,
+            )
+
+            self.extra_lives_granted_this_update += (
+                self.process_score_event(
+                    score_event=ScoreEvent.HUNTER_DEFEATED,
+                )
             )
 
     # Resumo: renderiza o cenário Riverbank, seus objetos e a Smart Snake.
@@ -500,7 +607,19 @@ class RiverbankScene(BaseScene):
                 position_y=mouse.position_y,
                 direction=mouse.direction,
             )
+
         for hunter in active_area.hunters:
+            if hunter.hunter_id in self.removed_hunter_ids:
+                continue
+
+            if (
+                hunter.state == HunterState.DEFEATED
+                and not self.hunter_defeat_controller.is_visible(
+                    hunter_id=hunter.hunter_id,
+                )
+            ):
+                continue
+
             self.hunter_renderer.render(
                 screen=screen,
                 position_x=hunter.position_x,
@@ -512,6 +631,7 @@ class RiverbankScene(BaseScene):
                 ),
                 state=hunter.state,
             )
+
         for mouse_projectile in (
             self.mouse_projectile_controller.active_projectiles
         ):
@@ -535,14 +655,17 @@ class RiverbankScene(BaseScene):
             current_health=self.player_state.current_health,
             maximum_health=self.player_state.maximum_health,
         )
+
         self.player_lives_renderer.render(
             screen=screen,
             lives=self.player_state.lives,
         )
+
         self.player_hud_renderer.render_mouse_inventory(
             screen=screen,
             stored_mice=self.player_state.stored_mice,
         )
+
         self.player_score_renderer.render(
             screen=screen,
             score=self.player_state.score,

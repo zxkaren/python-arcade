@@ -149,3 +149,37 @@ def test_get_sprite_surface_uses_attack_frames_when_attacking() -> None:
     )
 
     assert selected_sprite_surface is attack_sprite_surfaces[1]
+
+# Resumo: garante que um Hunter derrotado utilize o sprite parado.
+# Parâmetros: nenhum.
+# Retorno: nenhum.
+def test_get_sprite_surface_uses_idle_sprite_when_defeated() -> None:
+    hunter_renderer = HunterRenderer.__new__(HunterRenderer)
+
+    idle_sprite_surface = object()
+
+    hunter_renderer.idle_sprite_surface = idle_sprite_surface
+    hunter_renderer.walk_left_sprite_surfaces = (
+        object(),
+        object(),
+    )
+    hunter_renderer.walk_right_sprite_surfaces = (
+        object(),
+        object(),
+    )
+    hunter_renderer.back_sprite_surfaces = (
+        object(),
+        object(),
+    )
+    hunter_renderer.attack_sprite_surfaces = (
+        object(),
+        object(),
+    )
+
+    selected_sprite_surface = hunter_renderer.get_sprite_surface(
+        direction=HunterDirection.UP,
+        frame_index=1,
+        state=HunterState.DEFEATED,
+    )
+
+    assert selected_sprite_surface is idle_sprite_surface

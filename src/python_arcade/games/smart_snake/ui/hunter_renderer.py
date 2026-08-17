@@ -2,7 +2,6 @@ from pathlib import Path
 
 import pygame
 
-from python_arcade.games.smart_snake.domain.hunter import HunterDirection
 from python_arcade.games.smart_snake.domain.hunter import (
     HunterDirection,
     HunterState,
@@ -70,6 +69,7 @@ class HunterRenderer:
             )
             for sprite_path in HUNTER_BACK_SPRITE_PATHS
         )
+
         self.attack_sprite_surfaces = tuple(
             self.load_and_scale_sprite(
                 sprite_path=sprite_path,
@@ -111,6 +111,9 @@ class HunterRenderer:
         frame_index: int,
         state: HunterState = HunterState.PATROLLING,
     ) -> pygame.Surface:
+        if state == HunterState.DEFEATED:
+            return self.idle_sprite_surface
+
         if state == HunterState.ATTACKING:
             normalized_frame_index = (
                 frame_index % len(self.attack_sprite_surfaces)

@@ -16,6 +16,7 @@ def create_hunter_attack() -> HunterAttack:
         hunter_id="hunter_01",
         range_x=220.0,
         range_y=100.0,
+        damage_points=50,
         attack_duration=0.6,
         animation_frame_duration=0.3,
         cooldown_duration=1.0,
@@ -147,3 +148,43 @@ def test_defeated_hunter_does_not_start_attack() -> None:
 
     assert attack_started is False
     assert hunter.state == HunterState.DEFEATED
+
+# Resumo: garante que cada ciclo de ataque produza somente um impacto válido.
+def test_hunter_attack_produces_only_one_impact_per_attack() -> None:
+    hunter = Hunter(
+        hunter_id="hunter_01",
+        position_x=1050.0,
+        position_y=500.0,
+    )
+
+    hunter_attack = create_hunter_attack()
+
+    attack_controller = HunterAttackController(
+        range_checker=HunterAttackRangeChecker(),
+    )
+
+    attack_controller.try_start_attack(
+        hunter=hunter,
+        hunter_attack=hunter_attack,
+        target_position_x=900.0,
+        target_position_y=450.0,
+    )
+
+    attack_controller.update(
+        hunter=hunter,
+        hunter_attack=hunter_attack,
+        delta_time=hunter_attack.animation_frame_duration,
+    )
+
+    first_impact = attack_controller.consume_attack_impact(
+        hunter=hunter,
+        hunter_attack=hunter_attack,
+    )
+
+    repeated_impact = attack_controller.consume_attack_impact(
+        hunter=hunter,
+        hunter_attack=hunter_attack,
+    )
+
+    assert first_impact is True
+    assert repeated_impact is False

@@ -25,6 +25,7 @@ def test_update_hunter_attacks_uses_active_area_configuration() -> None:
     smart_snake.position_y = 450.0
 
     hunter_attack_controller = Mock()
+    hunter_attack_controller.consume_attack_impact.return_value = False
     hunter_attack_controller.try_start_attack.return_value = False
 
     riverbank_scene = RiverbankScene.__new__(RiverbankScene)
@@ -40,6 +41,11 @@ def test_update_hunter_attacks_uses_active_area_configuration() -> None:
         hunter=hunter,
         hunter_attack=hunter_attack,
         delta_time=0.1,
+    )
+
+    hunter_attack_controller.consume_attack_impact.assert_called_once_with(
+        hunter=hunter,
+        hunter_attack=hunter_attack,
     )
 
     hunter_attack_controller.try_start_attack.assert_called_once_with(
@@ -70,6 +76,7 @@ def test_update_hunter_attacks_resets_animation_when_attack_starts() -> None:
     smart_snake.position_y = 450.0
 
     hunter_attack_controller = Mock()
+    hunter_attack_controller.consume_attack_impact.return_value = False
     hunter_attack_controller.try_start_attack.return_value = True
 
     hunter_animation_controller = Mock()

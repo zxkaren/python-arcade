@@ -420,7 +420,7 @@ class RiverbankScene(BaseScene):
                 delta_time=delta_time,
             )
 
-    # Resumo: atualiza os ciclos de ataque dos Hunters configurados na área ativa.
+    # Resumo: atualiza os ciclos de ataque dos Hunters e aplica impactos ao jogador.
     # Parâmetros: delta_time representa o tempo decorrido desde a última atualização.
     def update_hunter_attacks(
         self,
@@ -447,6 +447,18 @@ class RiverbankScene(BaseScene):
                 delta_time=delta_time,
             )
 
+            attack_impact_occurred = (
+                self.hunter_attack_controller.consume_attack_impact(
+                    hunter=hunter,
+                    hunter_attack=hunter_attack,
+                )
+            )
+
+            if attack_impact_occurred:
+                self.player_state.receive_damage(
+                    damage_amount=hunter_attack.damage_points,
+                )
+
             attack_started = (
                 self.hunter_attack_controller.try_start_attack(
                     hunter=hunter,
@@ -464,7 +476,6 @@ class RiverbankScene(BaseScene):
             )
 
             self.hunter_animation_frame_indices[hunter.hunter_id] = 0
-
     # Resumo: atualiza as patrulhas configuradas para os Hunters da área ativa.
     def update_hunter_patrols(
         self,

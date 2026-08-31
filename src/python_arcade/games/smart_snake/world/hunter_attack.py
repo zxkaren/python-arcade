@@ -6,6 +6,7 @@ class HunterAttack:
     hunter_id: str
     range_x: float
     range_y: float
+    damage_points: int
     attack_duration: float
     animation_frame_duration: float
     cooldown_duration: float

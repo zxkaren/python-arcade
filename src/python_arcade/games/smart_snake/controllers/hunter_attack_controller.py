@@ -13,7 +13,6 @@ class HunterAttackController:
 
     # Resumo: inicializa o controle de ataque e seus temporizadores.
     # Parâmetros: range_checker verifica se o alvo pode ser atacado.
-    # Retorno: nenhum.
     def __init__(
         self,
         range_checker: HunterAttackRangeChecker,
@@ -21,6 +20,7 @@ class HunterAttackController:
         self.range_checker = range_checker
         self.attack_elapsed_times_by_hunter_id: dict[str, float] = {}
         self.cooldown_remaining_times_by_hunter_id: dict[str, float] = {}
+        self.attack_impacts_applied_by_hunter_id: set[str] = set()
 
     # Resumo: inicia o ataque quando o Hunter está disponível e o alvo está no alcance.
     # Parâmetros: Hunter, configuração de ataque e posição atual do alvo.
@@ -58,12 +58,14 @@ class HunterAttackController:
 
         hunter.state = HunterState.ATTACKING
         self.attack_elapsed_times_by_hunter_id[hunter.hunter_id] = 0.0
+        self.attack_impacts_applied_by_hunter_id.discard(
+            hunter.hunter_id,
+        )
 
         return True
 
     # Resumo: atualiza a duração do ataque e o cooldown de um Hunter.
     # Parâmetros: Hunter, configuração de ataque e tempo decorrido.
-    # Retorno: nenhum.
     def update(
         self,
         hunter: Hunter,
@@ -83,9 +85,36 @@ class HunterAttackController:
             delta_time=delta_time,
         )
 
+    # Resumo: informa uma única vez quando o golpe alcança o frame de impacto.
+    # Parâmetros: Hunter e configuração temporal do ataque.
+    # Retorno: True somente no primeiro impacto válido do ataque atual.
+    def consume_attack_impact(
+        self,
+        hunter: Hunter,
+        hunter_attack: HunterAttack,
+    ) -> bool:
+        if hunter.state != HunterState.ATTACKING:
+            return False
+
+        if hunter.hunter_id in self.attack_impacts_applied_by_hunter_id:
+            return False
+
+        elapsed_time = self.attack_elapsed_times_by_hunter_id.get(
+            hunter.hunter_id,
+            0.0,
+        )
+
+        if elapsed_time < hunter_attack.animation_frame_duration:
+            return False
+
+        self.attack_impacts_applied_by_hunter_id.add(
+            hunter.hunter_id,
+        )
+
+        return True
+
     # Resumo: atualiza o tempo do golpe e encerra o ataque ao atingir sua duração.
     # Parâmetros: Hunter, configuração de ataque e tempo decorrido.
-    # Retorno: nenhum.
     def update_active_attack(
         self,
         hunter: Hunter,
@@ -112,7 +141,6 @@ class HunterAttackController:
 
     # Resumo: reduz o tempo restante de cooldown do Hunter.
     # Parâmetros: Hunter e tempo decorrido.
-    # Retorno: nenhum.
     def update_cooldown(
         self,
         hunter: Hunter,

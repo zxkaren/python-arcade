@@ -1,3 +1,6 @@
+from collections.abc import Callable
+from copy import deepcopy
+
 import pygame
 
 from python_arcade.games.smart_snake.config.game_settings import (
@@ -48,6 +51,9 @@ from python_arcade.games.smart_snake.controllers.mouse_projectile_movement_contr
 )
 from python_arcade.games.smart_snake.controllers.mouse_route_controller import (
     MouseRouteController,
+)
+from python_arcade.games.smart_snake.controllers.player_defeat_controller import (
+    PlayerDefeatController,
 )
 from python_arcade.games.smart_snake.controllers.player_movement_controller import (
     PlayerMovementController,
@@ -119,6 +125,7 @@ from python_arcade.games.smart_snake.world.walkable_area_constraint import (
     WalkableAreaConstraint,
 )
 
+
 SMART_SNAKE_MOVEMENT_SPEED = 250.0
 SMART_SNAKE_ANIMATION_FRAME_DURATION = 0.2
 
@@ -132,6 +139,9 @@ HUNTER_ANIMATION_FRAME_DURATION = 0.4
 HUNTER_DEFEAT_DURATION = 1.2
 HUNTER_DEFEAT_BLINK_COUNT = 2
 
+PLAYER_DEFEAT_DURATION = 1.2
+PLAYER_DEFEAT_BLINK_COUNT = 2
+
 RIVERBANK_ROAD_CENTER_Y = (
     RIVERBANK_ROAD_MINIMUM_Y
     + RIVERBANK_ROAD_MAXIMUM_Y
@@ -142,9 +152,13 @@ RIVERBANK_ROAD_CENTER_Y = (
 class RiverbankScene(BaseScene):
 
     # Resumo: inicializa a área ativa, a Smart Snake e os recursos da Riverbank.
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        on_game_over: Callable[[], None] | None = None,
+    ) -> None:
+        self.on_game_over = on_game_over
         self.stage_area_manager = StageAreaManager(
-            stage_areas=RIVERBANK_STAGE_AREAS,
+            stage_areas=deepcopy(RIVERBANK_STAGE_AREAS),
             initial_area_id=RIVERBANK_INITIAL_AREA_ID,
         )
 
@@ -220,6 +234,10 @@ class RiverbankScene(BaseScene):
         self.mouse_projectile_hit_service = MouseProjectileHitService()
 
         self.player_life_service = PlayerLifeService()
+        self.player_defeat_controller = PlayerDefeatController(
+            defeat_duration=PLAYER_DEFEAT_DURATION,
+            blink_count=PLAYER_DEFEAT_BLINK_COUNT,
+        )
 
         self.extra_lives_granted_this_update = 0
         self.player_life_event_this_update = PlayerLifeEvent.NONE
@@ -261,6 +279,11 @@ class RiverbankScene(BaseScene):
         self.extra_lives_granted_this_update = 0
         self.player_life_event_this_update = PlayerLifeEvent.NONE
 
+        if self.update_player_defeat(
+            delta_time=delta_time,
+        ):
+            return
+
         pressed_keys = pygame.key.get_pressed()
 
         direction_x, direction_y = (
@@ -301,6 +324,11 @@ class RiverbankScene(BaseScene):
         self.update_hunter_attacks(
             delta_time=delta_time,
         )
+
+        if self.update_player_defeat(
+            delta_time=0.0,
+        ):
+            return
 
         self.update_hunter_patrols(
             delta_time=delta_time,
@@ -344,18 +372,47 @@ class RiverbankScene(BaseScene):
                 )
             )
 
-        if not self.is_game_over:
-            self.player_life_event_this_update = (
-                self.player_life_service.process_health_depletion(
-                    player_state=self.player_state,
-                )
-            )
+    # Resumo: controla o ciclo de derrota antes de processar a perda de vida.
+    # Parâmetros: delta_time representa o tempo decorrido desde o último frame.
+    # Retorno: True enquanto o gameplay deve permanecer bloqueado pela derrota.
+    def update_player_defeat(
+        self,
+        delta_time: float,
+    ) -> bool:
+        if self.is_game_over:
+            return True
 
-        if (
-            self.player_life_event_this_update
-            == PlayerLifeEvent.GAME_OVER
-        ):
+        if not self.player_defeat_controller.is_active:
+            if self.player_state.current_health > 0:
+                return False
+
+            self.player_defeat_controller.start()
+            return True
+
+        defeat_finished = self.player_defeat_controller.update(
+            delta_time=delta_time,
+        )
+
+        if not defeat_finished:
+            return True
+
+        self.player_life_event_this_update = (
+            self.player_life_service.process_health_depletion(
+                player_state=self.player_state,
+            )
+        )
+
+        if self.player_life_event_this_update == PlayerLifeEvent.GAME_OVER:
             self.is_game_over = True
+
+            if self.on_game_over is not None:
+                self.on_game_over()
+
+            return True
+
+        self.player_defeat_controller.reset()
+
+        return True
 
     # Resumo: mantém todo o sprite da Smart Snake dentro da área caminhável ativa.
     def constrain_smart_snake_to_walkable_area(self) -> None:
@@ -476,6 +533,7 @@ class RiverbankScene(BaseScene):
             )
 
             self.hunter_animation_frame_indices[hunter.hunter_id] = 0
+
     # Resumo: atualiza as patrulhas configuradas para os Hunters da área ativa.
     def update_hunter_patrols(
         self,
@@ -545,8 +603,6 @@ class RiverbankScene(BaseScene):
             )
 
     # Resumo: processa impactos dos projéteis ativos contra os Hunters da área.
-    # Parâmetros: nenhum.
-    # Retorno: nenhum.
     def process_mouse_projectile_hits(self) -> None:
         active_area = self.stage_area_manager.get_active_area()
 
@@ -654,12 +710,13 @@ class RiverbankScene(BaseScene):
                 direction_y=mouse_projectile.direction_y,
             )
 
-        self.smart_snake_renderer.render(
-            screen=screen,
-            position_x=self.smart_snake.position_x,
-            position_y=self.smart_snake.position_y,
-            frame_index=self.current_animation_frame_index,
-        )
+        if self.player_defeat_controller.is_visible():
+            self.smart_snake_renderer.render(
+                screen=screen,
+                position_x=self.smart_snake.position_x,
+                position_y=self.smart_snake.position_y,
+                frame_index=self.current_animation_frame_index,
+            )
 
         self.player_hud_renderer.render_health_bar(
             screen=screen,

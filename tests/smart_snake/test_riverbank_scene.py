@@ -23,6 +23,7 @@ from python_arcade.games.smart_snake.domain.mouse_projectile import (
 from python_arcade.games.smart_snake.scenes.riverbank_scene import (
     MOUSE_PROJECTILE_CLEANUP_MARGIN,
     MOUSE_PROJECTILE_MOVEMENT_SPEED,
+    PLAYER_DEFEAT_DURATION,
     SMART_SNAKE_ANIMATION_FRAME_DURATION,
     RiverbankScene,
 )
@@ -853,6 +854,7 @@ def test_riverbank_scene_removes_projectile_after_leaving_screen(
         == [projectile_still_leaving_screen]
     )
 
+
 # Resumo: valida se consumir um rato adiciona sua pontuação ao jogador.
 # Parâmetros: riverbank_scene fornece a cena e monkeypatch simula ausência de movimento.
 # Retorno: nenhum.
@@ -881,6 +883,7 @@ def test_riverbank_scene_adds_score_when_mouse_is_consumed(
 
     assert mouse not in riverbank_scene.mice
     assert riverbank_scene.player_state.score == initial_score + 50
+
 
 # Resumo: valida se a RiverbankScene renderiza a pontuação atual do jogador.
 # Parâmetros: riverbank_scene fornece a cena e monkeypatch intercepta o renderer do score.
@@ -915,6 +918,7 @@ def test_riverbank_scene_renders_player_score(
     )
 
     assert rendered_score == 150
+
 
 # Resumo: valida se alcançar 3000 pontos ao consumir um rato concede uma vida extra.
 # Parâmetros: riverbank_scene fornece a cena e monkeypatch simula ausência de movimento.
@@ -983,6 +987,7 @@ def test_riverbank_scene_resets_extra_life_trigger_on_next_update(
 
     assert riverbank_scene.extra_lives_granted_this_update == 0
 
+
 # Resumo: valida se a RiverbankScene renderiza a quantidade atual de vidas.
 # Parâmetros: riverbank_scene fornece a cena e monkeypatch intercepta o renderer das vidas.
 # Retorno: nenhum.
@@ -1017,7 +1022,8 @@ def test_riverbank_scene_renders_player_lives(
 
     assert rendered_lives == 4
 
-# Resumo: valida se HP zerado produz o gatilho de perda de vida durante o update.
+
+# Resumo: valida se a perda de vida ocorre após o ciclo de derrota.
 # Parâmetros: riverbank_scene fornece a cena e monkeypatch simula ausência de movimento.
 # Retorno: nenhum.
 def test_riverbank_scene_sets_life_lost_event_when_health_is_depleted(
@@ -1042,6 +1048,17 @@ def test_riverbank_scene_sets_life_lost_event_when_health_is_depleted(
 
     assert (
         riverbank_scene.player_life_event_this_update
+        == PlayerLifeEvent.NONE
+    )
+    assert riverbank_scene.player_state.lives == 3
+    assert riverbank_scene.player_state.current_health == 0
+
+    riverbank_scene.update(
+        delta_time=PLAYER_DEFEAT_DURATION,
+    )
+
+    assert (
+        riverbank_scene.player_life_event_this_update
         == PlayerLifeEvent.LIFE_LOST
     )
     assert riverbank_scene.player_state.lives == 2
@@ -1049,6 +1066,7 @@ def test_riverbank_scene_sets_life_lost_event_when_health_is_depleted(
         riverbank_scene.player_state.current_health
         == riverbank_scene.player_state.maximum_health
     )
+
 
 # Resumo: valida se o gatilho de perda de vida é limpo no update seguinte.
 # Parâmetros: riverbank_scene fornece a cena e monkeypatch simula ausência de movimento.
@@ -1073,6 +1091,10 @@ def test_riverbank_scene_resets_life_event_on_next_update(
         delta_time=0.0,
     )
 
+    riverbank_scene.update(
+        delta_time=PLAYER_DEFEAT_DURATION,
+    )
+
     assert (
         riverbank_scene.player_life_event_this_update
         == PlayerLifeEvent.LIFE_LOST
@@ -1087,7 +1109,8 @@ def test_riverbank_scene_resets_life_event_on_next_update(
         == PlayerLifeEvent.NONE
     )
 
-# Resumo: valida se perder a última vida produz o gatilho de Game Over.
+
+# Resumo: valida se a última vida produz Game Over após o ciclo de derrota.
 # Parâmetros: riverbank_scene fornece a cena e monkeypatch simula ausência de movimento.
 # Retorno: nenhum.
 def test_riverbank_scene_sets_game_over_event_after_last_life(
@@ -1114,13 +1137,25 @@ def test_riverbank_scene_sets_game_over_event_after_last_life(
 
     assert (
         riverbank_scene.player_life_event_this_update
+        == PlayerLifeEvent.NONE
+    )
+    assert riverbank_scene.player_state.lives == 1
+    assert riverbank_scene.player_state.current_health == 0
+
+    riverbank_scene.update(
+        delta_time=PLAYER_DEFEAT_DURATION,
+    )
+
+    assert (
+        riverbank_scene.player_life_event_this_update
         == PlayerLifeEvent.GAME_OVER
     )
     assert riverbank_scene.player_state.lives == 0
     assert riverbank_scene.player_state.current_health == 0
     assert riverbank_scene.is_game_over is True
 
-# Resumo: valida se o gatilho de Game Over ocorre apenas no update da derrota final.
+
+# Resumo: valida se o gatilho de Game Over não se repete após a derrota final.
 # Parâmetros: riverbank_scene fornece a cena e monkeypatch simula ausência de movimento.
 # Retorno: nenhum.
 def test_riverbank_scene_does_not_repeat_game_over_event(
@@ -1145,6 +1180,10 @@ def test_riverbank_scene_does_not_repeat_game_over_event(
         delta_time=0.0,
     )
 
+    riverbank_scene.update(
+        delta_time=PLAYER_DEFEAT_DURATION,
+    )
+
     assert (
         riverbank_scene.player_life_event_this_update
         == PlayerLifeEvent.GAME_OVER
@@ -1159,6 +1198,7 @@ def test_riverbank_scene_does_not_repeat_game_over_event(
         == PlayerLifeEvent.NONE
     )
     assert riverbank_scene.player_state.lives == 0
+    assert riverbank_scene.player_state.current_health == 0
     assert riverbank_scene.is_game_over is True
 
 

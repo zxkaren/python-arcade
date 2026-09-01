@@ -11,6 +11,9 @@ from python_arcade.games.smart_snake.scenes.intro_scene import IntroScene
 from python_arcade.games.smart_snake.scenes.main_menu_scene import MainMenuScene
 from python_arcade.games.smart_snake.scenes.stage_scene import StageScene
 from python_arcade.games.smart_snake.scenes.riverbank_scene import RiverbankScene
+from python_arcade.games.smart_snake.scenes.game_over_scene import (
+    GameOverScene,
+)
 
 # Controla o ciclo principal de execução da Smart Snake.
 class SmartSnakeGame:
@@ -72,6 +75,18 @@ class SmartSnakeGame:
 
     # Exibe a área jogável Riverbank.
     def show_riverbank(self) -> None:
-        riverbank_scene = RiverbankScene()
+        riverbank_scene = RiverbankScene(
+            on_game_over=self.show_game_over,
+        )
 
         self.scene_manager.change_scene(riverbank_scene)
+
+        # Resumo: exibe a tela de Game Over e permite iniciar uma nova tentativa.
+    def show_game_over(self) -> None:
+        game_over_scene = GameOverScene(
+            on_try_again=self.show_riverbank,
+        )
+
+        self.scene_manager.change_scene(
+            game_over_scene,
+        )
